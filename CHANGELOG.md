@@ -1,6 +1,10 @@
 Unreleased
 ==================
 
+
+0.3.3 (2019-07-20)
+==================
+
 `cargo-screeps` no longer requires installing `cargo-web`, so if you've
 previously installed both, you can now freely remove the latter. It won't hurt
 to have it installed, but `cargo-screeps` will not use it.
