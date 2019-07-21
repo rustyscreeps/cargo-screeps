@@ -115,6 +115,21 @@ This configures general build options.
 - `output_wasm_file`: the WASM file to rename compile WASM to (default `"compiled.wasm"`)
 - `initialize_header_file`: a file containing the JavaScript for starting the WASM instance. See
   [overriding the default initialization header](#overriding-the-default-initialization-header)
+- `wasm_opt_binary`: the path to the `wasm-opt` binary from the [Binaryen] toolset (default
+  `"wasm-opt"`)
+
+  If set to a valid binary path, then `wasm-opt` will be used to optimize binaries after building.
+
+## `[build.binaryen]`
+
+This contains configuration options for the binaryen optimization pass.
+
+- `shrink_level`: How much to focus on shrinking code when running binaryen pass. Using 2+ is not
+  recommended (default 0)
+- `optimization_level`: How much to focus on making code fast when running binaryen pass. Use 1, 2,
+  3, or 4 for progressively slower builds and faster output (default 0)
+- `debug_info`: Whether to keep debug info in output wasm module. Currently not super useful since
+  builds produced by 'cargo' don't include debug info to begin with. (default `true`)
 
 ## Overriding the default initialization header
 
@@ -146,5 +161,8 @@ cargo screeps build
 [crate]: https://crates.io/crates/cargo-screeps/
 [`screeps-game-api`]: https://github.com/rustyscreeps/screeps-game-api/
 [`cargo-web`]: https://github.com/koute/cargo-web
+[`stdweb`]: https://github.com/koute/stdweb
 [screepsmod-auth]: https://www.npmjs.com/package/screepsmod-auth
 [screeps]: https://screeps.com/
+[Binaryen]: https://github.com/WebAssembly/binaryen
+[binaryen-rs]: https://github.com/pepyakin/binaryen-rs

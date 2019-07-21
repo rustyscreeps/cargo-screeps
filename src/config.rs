@@ -9,6 +9,38 @@ use log::*;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct BinaryenConfig {
+    #[serde(default = "BinaryenConfig::default_shrink_level")]
+    pub shrink_level: u32,
+    #[serde(default = "BinaryenConfig::default_optimization_level")]
+    pub optimization_level: u32,
+    #[serde(default = "BinaryenConfig::default_debug_info")]
+    pub debug_info: bool,
+}
+
+impl BinaryenConfig {
+    fn default_shrink_level() -> u32 {
+        0
+    }
+    fn default_optimization_level() -> u32 {
+        0
+    }
+    fn default_debug_info() -> bool {
+        true
+    }
+}
+
+impl Default for BinaryenConfig {
+    fn default() -> Self {
+        BinaryenConfig {
+            shrink_level: Self::default_shrink_level(),
+            optimization_level: Self::default_optimization_level(),
+            debug_info: Self::default_debug_info(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct BuildConfiguration {
     #[serde(default = "BuildConfiguration::default_output_wasm_file")]
     pub output_wasm_file: PathBuf,
@@ -16,6 +48,8 @@ pub struct BuildConfiguration {
     pub output_js_file: PathBuf,
     #[serde(default)]
     pub initialization_header_file: Option<PathBuf>,
+    #[serde(default)]
+    pub binaryen: BinaryenConfig,
 }
 
 impl Default for BuildConfiguration {
@@ -24,6 +58,7 @@ impl Default for BuildConfiguration {
             output_wasm_file: Self::default_output_wasm_file(),
             output_js_file: Self::default_output_js_file(),
             initialization_header_file: None,
+            binaryen: BinaryenConfig::default(),
         }
     }
 }

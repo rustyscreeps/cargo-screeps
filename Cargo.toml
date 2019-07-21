@@ -20,6 +20,7 @@ description = "Build tool for deploying Rust WASM code to Screeps game servers"
 
 [dependencies]
 base64 = "0.10"
+binaryen = "0.8"
 clap = "2"
 # We rely on the output format of cargo-web, which is not a publicly guaranteed property.
 cargo-web = "=0.6.26"
