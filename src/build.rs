@@ -200,7 +200,7 @@ if( typeof Rust === "undefined" ) {
         format_err!(
             "'cargo web' generated unexpected JS prefix! This means it's updated without \
              'cargo screeps' also having updated. Please report this issue to \
-             https://github.com/daboross/screeps-in-rust-via-wasm/issues and include \
+             https://github.com/rustyscreeps/cargo-screeps/issues and include \
              the first ~30 lines of {}",
             file_name.display(),
         )
@@ -210,7 +210,7 @@ if( typeof Rust === "undefined" ) {
         format_err!(
             "'cargo web' generated unexpected JS suffix! This means it's updated without \
              'cargo screeps' also having updated. Please report this issue to \
-             https://github.com/daboross/screeps-in-rust-via-wasm/issues and include \
+             https://github.com/rustyscreeps/cargo-screeps/issues and include \
              the last ~30 lines of {}",
             file_name.display(),
         )

@@ -16,16 +16,14 @@ install:
 - curl -sSf -o rustup-init.exe https://win.rustup.rs/
 - rustup-init.exe -y --default-host %TARGET% --default-toolchain %RUST_VERSION%
 - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-- rustup target add wasm32-unknown-unknown
 - rustc -Vv
 - cargo -V
 
 test_script:
-- cd cargo-screeps && cargo build --verbose
-- cd cargo-screeps && cargo test --verbose
-- cd cargo-screeps && cargo build --all features --verbose
-- cd cargo-screeps && cargo test --all features --verbose
-- cd screeps-game-api && cargo build --release --target=wasm32-unknown-unknown --verbose
+- cargo build --verbose
+- cargo test --verbose
+- cargo build --all features --verbose
+- cargo test --all features --verbose
 
 cache:
 - target

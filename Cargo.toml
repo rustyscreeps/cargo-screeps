@@ -15,7 +15,7 @@ include = [
 ]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/daboross/screeps-in-rust-via-wasm/"
+repository = "https://github.com/rustyscreeps/cargo-screeps/"
 description = "Build tool for deploying Rust WASM code to Screeps game servers"
 
 [dependencies]
