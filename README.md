@@ -5,8 +5,11 @@ cargo-screeps
 
 Build tool for deploying Rust WASM repositories to [Screeps][screeps] game servers.
 
-`cargo-screeps` wraps [`cargo-web`], adding the ability to trim node.js and web javascript code from
-the output files, and allows uploading directly to Screeps servers.
+`cargo-screeps` wraps [`cargo-web`] and [`binaryen`], adding the ability to trim node.js and web
+javascript code from the output files, to run binaryen optimization automatically, and to upload
+directly to Screeps servers.
+
+### screeps-game-api
 
 The other main project in this organization is [`screeps-game-api`], type-safe bindings to the
 in-game Screeps API.
@@ -14,6 +17,19 @@ in-game Screeps API.
 These two tools go together well, but do not depend on eachother. `cargo-screeps` can compile and
 upload any screeps WASM project buildable with `stdweb`'s `cargo-web`, and `screeps-game-api` is
 usable in any project built with `cargo-web`.
+
+### cargo-web
+
+[`cargo-web`] is the base which `cargo-screeps` depends upon. It implements post-processing interop
+between Rust and JavaScript, and allows [`stdweb`] to function.
+
+### binaryen
+
+[Binaryen] is a set of tools for working with and optimizing WASM modules. cargo-screeps uses [rust
+bindings to binaryen][binaryen-rs] to run the `wasm-opt` optimization passes on all output files.
+
+Even with `optimization_level = 0` and `shrink_level = 0` (the default and lowest optimization
+settings), file size can be decreased by as much as 10%.
 
 ---
 
