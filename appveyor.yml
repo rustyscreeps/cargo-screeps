@@ -23,8 +23,8 @@ install:
 test_script:
 - cargo build --verbose
 - cargo test --verbose
-- cargo build --all features --verbose
-- cargo test --all features --verbose
+- cargo build --all-features --verbose
+- cargo test --all-features --verbose
 
 cache:
 - target
