@@ -3,14 +3,15 @@
 
 environment:
     matrix:
+    # Stable
+    - TARGET: i686-pc-windows-msvc
+      RUST_VERSION: stable
     # Nightly
     - TARGET: i686-pc-windows-msvc
       RUST_VERSION: nightly
 
 matrix:
     fast_finish: true
-    allow_failures:
-    - RUST_VERSION: nightly
 
 install:
 - curl -sSf -o rustup-init.exe https://win.rustup.rs/
@@ -22,8 +23,8 @@ install:
 test_script:
 - cargo build --verbose
 - cargo test --verbose
-- cargo build --all features --verbose
-- cargo test --all features --verbose
+- cargo build --all-features --verbose
+- cargo test --all-features --verbose
 
 cache:
 - target
