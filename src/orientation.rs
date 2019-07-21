@@ -37,7 +37,7 @@ pub fn find_project_root(cli_config: &CliConfig) -> Result<PathBuf, failure::Err
             format_err!(
                 "could not find 'screeps.toml' in {} or parents.\n\
                  Please create 'screeps.toml' in project root. (example at \
-                 https://github.com/daboross/screeps-in-rust-via-wasm/\
+                 https://github.com/rustyscreeps/cargo-screeps/\
                  blob/master/screeps-defaults.toml)",
                 canon_here.display()
             )

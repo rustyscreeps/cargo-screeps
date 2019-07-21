@@ -144,7 +144,7 @@ cargo screeps build
 
 [cratesio-badge]: http://meritbadge.herokuapp.com/cargo-screeps
 [crate]: https://crates.io/crates/cargo-screeps/
-[`screeps-game-api`]: https://github.com/daboross/screeps-in-rust-via-wasm/
+[`screeps-game-api`]: https://github.com/rustyscreeps/screeps-game-api/
 [`cargo-web`]: https://github.com/koute/cargo-web
 [screepsmod-auth]: https://www.npmjs.com/package/screepsmod-auth
 [screeps]: https://screeps.com/

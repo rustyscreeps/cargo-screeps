@@ -27,7 +27,7 @@ to have it installed, but `cargo-screeps` will not use it.
 - Update to `reqwest` 0.9
 - Change default WASM module initialization and allow projects to override
   module initialization via configuration (see
-  [docs/initialiation-header.md](https://github.com/daboross/screeps-in-rust-via-wasm/blob/master/cargo-screeps/docs/initialization-header.md))
+  [docs/initialiation-header.md](https://github.com/rustyscreeps/cargo-screeps/blob/master/docs/initialization-header.md))
 
 0.2.1 (2018-10-26)
 ==================
