@@ -13,6 +13,10 @@ The default initialization header is as follows:
 // If `new WebAssembly.Instance` times out, this will helpfully remain here to be reused next tick.
 let wasm_module = null;
 
+// Allow stack traces to have infinite length. This is in here purely so that it's presence and/or
+// value can be configured. The default limit for the number of lines in a stack trace is 10.
+Error.stackTraceLimit = Infinity;
+
 // This function does the initialization. It's separate from `module.exports.loop` so JS code can
 // run `module.exports.loop = wasm_initialize` to reset the WASM vm next tick.
 function wasm_initialize() {
