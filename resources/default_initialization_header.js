@@ -1,6 +1,8 @@
 "use strict";
 let wasm_module = null;
 
+Error.stackTraceLimit = Infinity;
+
 function wasm_initialize() {
     
     if (Game.cpu.bucket < 500) {
