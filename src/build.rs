@@ -1,5 +1,6 @@
 use std::{borrow::Cow, env, ffi::OsStr, fs, io::Write, path::Path};
 
+use binaryen::CodegenConfig;
 use cargo_web::{BuildOpts, CargoWebOpts, CheckOpts};
 use failure::{bail, ensure, format_err};
 use log::*;
@@ -26,6 +27,33 @@ pub fn check(root: &Path) -> Result<(), failure::Error> {
 
     debug!("finished executing cargo-web check");
     Ok(())
+}
+
+pub fn execute_binaryen_pass(
+    config: &Configuration,
+    input_bytes: &[u8],
+) -> Result<Vec<u8>, failure::Error> {
+    info!("optimizing...");
+
+    debug!("running binaryen with codegen config {:?}", config);
+
+    let config = CodegenConfig {
+        shrink_level: config.build.binaryen.shrink_level,
+        optimization_level: config.build.binaryen.optimization_level,
+        debug_info: config.build.binaryen.debug_info,
+    };
+
+    binaryen::set_global_codegen_config(&config);
+
+    let module = binaryen::Module::read(input_bytes).map_err(|()| {
+        format_err!("binaryen found WASM module created by 'cargo-web' to be invalid")
+    })?;
+
+    module.optimize();
+
+    info!("optimized.");
+
+    Ok(module.write())
 }
 
 pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
@@ -86,11 +114,22 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
 
     let out_dir = root.join("target");
 
-    debug!("copying wasm file");
-
     fs::create_dir_all(&out_dir)?;
 
-    fs::copy(wasm_file, out_dir.join(&config.build.output_wasm_file))?;
+    debug!("reading wasm file");
+    let wasm_file_contents = fs::read(&wasm_file)?;
+    let wasm_file_out = out_dir.join(&config.build.output_wasm_file);
+    match execute_binaryen_pass(&config, &wasm_file_contents) {
+        Ok(optimized_contents) => {
+            debug!("writing optimized wasm file");
+            fs::write(wasm_file_out, &optimized_contents)?;
+        }
+        Err(e) => {
+            warn!("binaryen pass failed: {}", e);
+            warn!("writing less optimized wasm file");
+            fs::copy(wasm_file, wasm_file_out)?;
+        }
+    }
 
     debug!("processing js file");
 

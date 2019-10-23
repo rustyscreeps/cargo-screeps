@@ -1,6 +1,7 @@
 Unreleased
 ==================
 
+- Add configurable binaryen optimization pass, defaulting to minimal processing (#17)
 
 0.3.3 (2019-07-20)
 ==================

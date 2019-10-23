@@ -5,8 +5,11 @@ cargo-screeps
 
 Build tool for deploying Rust WASM repositories to [Screeps][screeps] game servers.
 
-`cargo-screeps` wraps [`cargo-web`], adding the ability to trim node.js and web javascript code from
-the output files, and allows uploading directly to Screeps servers.
+`cargo-screeps` wraps [`cargo-web`] and [`binaryen`], adding the ability to trim node.js and web
+javascript code from the output files, to run binaryen optimization automatically, and to upload
+directly to Screeps servers.
+
+### screeps-game-api
 
 The other main project in this organization is [`screeps-game-api`], type-safe bindings to the
 in-game Screeps API.
@@ -14,6 +17,19 @@ in-game Screeps API.
 These two tools go together well, but do not depend on eachother. `cargo-screeps` can compile and
 upload any screeps WASM project buildable with `stdweb`'s `cargo-web`, and `screeps-game-api` is
 usable in any project built with `cargo-web`.
+
+### cargo-web
+
+[`cargo-web`] is the base which `cargo-screeps` depends upon. It implements post-processing interop
+between Rust and JavaScript, and allows [`stdweb`] to function.
+
+### binaryen
+
+[Binaryen] is a set of tools for working with and optimizing WASM modules. cargo-screeps uses [rust
+bindings to binaryen][binaryen-rs] to run the `wasm-opt` optimization passes on all output files.
+
+Even with `optimization_level = 0` and `shrink_level = 0` (the default and lowest optimization
+settings), file size can be decreased by as much as 10%.
 
 ---
 
@@ -115,6 +131,21 @@ This configures general build options.
 - `output_wasm_file`: the WASM file to rename compile WASM to (default `"compiled.wasm"`)
 - `initialize_header_file`: a file containing the JavaScript for starting the WASM instance. See
   [overriding the default initialization header](#overriding-the-default-initialization-header)
+- `wasm_opt_binary`: the path to the `wasm-opt` binary from the [Binaryen] toolset (default
+  `"wasm-opt"`)
+
+  If set to a valid binary path, then `wasm-opt` will be used to optimize binaries after building.
+
+## `[build.binaryen]`
+
+This contains configuration options for the binaryen optimization pass.
+
+- `shrink_level`: How much to focus on shrinking code when running binaryen pass. Using 2+ is not
+  recommended (default 0)
+- `optimization_level`: How much to focus on making code fast when running binaryen pass. Use 1, 2,
+  3, or 4 for progressively slower builds and faster output (default 0)
+- `debug_info`: Whether to keep debug info in output wasm module. Currently not super useful since
+  builds produced by 'cargo' don't include debug info to begin with. (default `true`)
 
 ## Overriding the default initialization header
 
@@ -146,5 +177,8 @@ cargo screeps build
 [crate]: https://crates.io/crates/cargo-screeps/
 [`screeps-game-api`]: https://github.com/rustyscreeps/screeps-game-api/
 [`cargo-web`]: https://github.com/koute/cargo-web
+[`stdweb`]: https://github.com/koute/stdweb
 [screepsmod-auth]: https://www.npmjs.com/package/screepsmod-auth
 [screeps]: https://screeps.com/
+[Binaryen]: https://github.com/WebAssembly/binaryen
+[binaryen-rs]: https://github.com/pepyakin/binaryen-rs

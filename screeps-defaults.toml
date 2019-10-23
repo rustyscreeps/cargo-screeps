@@ -18,3 +18,8 @@ branch = "default"
 # use absolute file path to get out of "target/"
 # ouptut_js_file = "main.js"
 # output_wasm_file = "compiled.wasm"
+
+# [build.binaryen]
+# shrink_level = 0
+# optimization_level = 0
+# debug_info = true
