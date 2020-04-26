@@ -16,6 +16,8 @@ pub struct BuildConfiguration {
     pub output_js_file: PathBuf,
     #[serde(default)]
     pub initialization_header_file: Option<PathBuf>,
+    #[serde(default)]
+    pub optimize: bool,
 }
 
 impl Default for BuildConfiguration {
@@ -24,6 +26,7 @@ impl Default for BuildConfiguration {
             output_wasm_file: Self::default_output_wasm_file(),
             output_js_file: Self::default_output_js_file(),
             initialization_header_file: None,
+            optimize: false
         }
     }
 }

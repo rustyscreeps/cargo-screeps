@@ -86,11 +86,38 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
 
     let out_dir = root.join("target");
 
-    debug!("copying wasm file");
-
     fs::create_dir_all(&out_dir)?;
 
-    fs::copy(wasm_file, out_dir.join(&config.build.output_wasm_file))?;
+    let optimize_wasm = if config.build.optimize {
+        if Path::new("wasm-opt").is_file() {
+            true
+        } else {
+            warn!("wasm-opt binary does not exist, skipping optimization");
+            false
+        }
+    } else {
+        false
+    };
+
+    if optimize_wasm {
+        info!("optimizing wasm file...");
+
+        let output = std::process::Command::new("wasm-opt")
+            .arg(wasm_file)
+            .arg("-g")
+            .arg("-Oz")
+            .arg("-o")
+            .arg(out_dir.join(&config.build.output_wasm_file))
+            .output()?;
+
+        ensure!(output.status.success(), "error: wasm-opt finished with exit-code {}", output.status.code().map(|c| c.to_string()).unwrap_or("(none)".to_string()));
+
+        info!("optimized.");
+    } else {
+        debug!("copying wasm file");
+
+        fs::copy(wasm_file, out_dir.join(&config.build.output_wasm_file))?;
+    }
 
     debug!("processing js file");
 
