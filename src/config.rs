@@ -26,7 +26,7 @@ impl Default for BuildConfiguration {
             output_wasm_file: Self::default_output_wasm_file(),
             output_js_file: Self::default_output_js_file(),
             initialization_header_file: None,
-            optimize: false
+            optimize: false,
         }
     }
 }

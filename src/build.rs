@@ -110,7 +110,15 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
             .arg(out_dir.join(&config.build.output_wasm_file))
             .output()?;
 
-        ensure!(output.status.success(), "error: wasm-opt finished with exit-code {}", output.status.code().map(|c| c.to_string()).unwrap_or("(none)".to_string()));
+        ensure!(
+            output.status.success(),
+            "error: wasm-opt finished with exit-code {}",
+            output
+                .status
+                .code()
+                .map(|c| c.to_string())
+                .unwrap_or("(none)".to_string())
+        );
 
         info!("optimized.");
     } else {
