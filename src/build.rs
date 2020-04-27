@@ -88,43 +88,47 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
 
     fs::create_dir_all(&out_dir)?;
 
-    let optimize_wasm = if config.build.optimize {
-        if Path::new("wasm-opt").is_file() || Path::new("wasm-opt.exe").is_file()  {
-            true
-        } else {
-            warn!("wasm-opt binary does not exist, skipping optimization");
-            false
-        }
-    } else {
-        false
-    };
-
-    if optimize_wasm {
+    let copy_wasm = if config.build.optimize {
         info!("optimizing wasm file...");
 
-        let output = std::process::Command::new("wasm-opt")
-            .arg(wasm_file)
+        let wasm_opt_res = std::process::Command::new("wasm-opt")
+            .arg(wasm_file.clone())
             .arg("-g")
             .arg("-Oz")
             .arg("-o")
-            .arg(out_dir.join(&config.build.output_wasm_file))
-            .output()?;
+            .arg(out_dir.join(config.build.output_wasm_file.clone()))
+            .output();
 
-        ensure!(
-            output.status.success(),
-            "error: wasm-opt finished with exit-code {}",
-            output
-                .status
-                .code()
-                .map(|c| c.to_string())
-                .unwrap_or("(none)".to_string())
-        );
+        match wasm_opt_res {
+            Ok(output) => {
+                ensure!(
+                    output.status.success(),
+                    "error: wasm-opt finished with exit-code {}",
+                    output
+                        .status
+                        .code()
+                        .map(|c| c.to_string())
+                        .unwrap_or("(none)".to_string())
+                );
 
-        info!("optimized.");
+                info!("optimized.");
+
+                false
+            },
+            Err(err) => {
+                error!("failed to run wasm-opt: {}", err.to_string());
+
+                true
+            }
+        }
     } else {
+        true
+    };
+
+    if copy_wasm {
         debug!("copying wasm file");
 
-        fs::copy(wasm_file, out_dir.join(&config.build.output_wasm_file))?;
+        fs::copy(wasm_file.clone(), out_dir.join(&config.build.output_wasm_file))?;
     }
 
     debug!("processing js file");
