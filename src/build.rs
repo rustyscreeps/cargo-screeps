@@ -89,7 +89,7 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
     fs::create_dir_all(&out_dir)?;
 
     let optimize_wasm = if config.build.optimize {
-        if Path::new("wasm-opt").is_file() {
+        if Path::new("wasm-opt").is_file() || Path::new("wasm-opt.exe").is_file()  {
             true
         } else {
             warn!("wasm-opt binary does not exist, skipping optimization");
