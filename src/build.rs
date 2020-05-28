@@ -7,17 +7,23 @@ use structopt::StructOpt;
 
 use crate::config::{BuildConfiguration, Configuration};
 
-pub fn check(root: &Path) -> Result<(), failure::Error> {
+pub fn check(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
     debug!("running check");
 
     debug!("changing directory to {}", root.display());
 
     env::set_current_dir(&root)?;
 
-    debug!("running cargo-web check --target=wasm32-unknown-unknown");
+    let mut args = vec!["--target=wasm32-unknown-unknown".to_owned()];
+
+    if let Some(default_package) = &config.package {
+        args.push(format!("--package={}", default_package));
+    }
+
+    debug!("running cargo-web check {}", args.join(" "));
 
     let res = cargo_web::run(CargoWebOpts::Check(
-        CheckOpts::from_iter_safe(&["--target=wasm32-unknown-unknown"])
+        CheckOpts::from_iter_safe(&args)
             .expect("expected hardcoded cargo-web args to be valid"),
     ));
     if let Err(e) = res {
@@ -35,10 +41,16 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
 
     env::set_current_dir(&root)?;
 
-    debug!("running cargo-web build --target=wasm32-unknown-unknown --release");
+    let mut args = vec!["--target=wasm32-unknown-unknown".to_owned(), "--release".to_owned()];
+
+    if let Some(default_package) = &config.package {
+        args.push(format!("--package={}", default_package));
+    }
+
+    debug!("running cargo-web build {}", args.join(" "));
 
     let res = cargo_web::run(CargoWebOpts::Build(
-        BuildOpts::from_iter_safe(&["--target=wasm32-unknown-unknown", "--release"])
+        BuildOpts::from_iter_safe(&args)
             .expect("expected hardcoded cargo-web args to be valid"),
     ));
     if let Err(e) = res {

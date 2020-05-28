@@ -26,7 +26,7 @@ pub fn run() -> Result<(), failure::Error> {
 
     match cli_config.command {
         setup::Command::Build => run_build(&root, &config)?,
-        setup::Command::Check => run_check(&root)?,
+        setup::Command::Check => run_check(&root, &config)?,
         setup::Command::Upload => {
             run_build(&root, &config)?;
             run_upload(&root, &config)?;
@@ -57,9 +57,9 @@ fn run_build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
     Ok(())
 }
 
-fn run_check(root: &Path) -> Result<(), failure::Error> {
+fn run_check(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
     info!("checking...");
-    build::check(root)?;
+    build::check(root, config)?;
     info!("checked.");
 
     Ok(())
