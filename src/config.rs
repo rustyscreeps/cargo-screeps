@@ -102,6 +102,8 @@ pub enum DeployMode {
 struct FileConfiguration {
     default_deploy_mode: Option<DeployMode>,
     #[serde(default)]
+    package: Option<String>,
+    #[serde(default)]
     build: BuildConfiguration,
     upload: Option<FileUploadConfiguration>,
     copy: Option<CopyConfiguration>,
@@ -110,6 +112,7 @@ struct FileConfiguration {
 #[derive(Debug, Clone)]
 pub struct Configuration {
     pub default_deploy_mode: Option<DeployMode>,
+    pub package: Option<String>,
     pub build: BuildConfiguration,
     pub copy: Option<CopyConfiguration>,
     pub upload: Option<UploadConfiguration>,
@@ -157,6 +160,7 @@ impl Configuration {
     fn new(config: FileConfiguration) -> Result<Configuration, failure::Error> {
         Ok(Configuration {
             default_deploy_mode: config.default_deploy_mode,
+            package: config.package,
             build: config.build,
             upload: match config.upload {
                 Some(upload_config) => Some(UploadConfiguration::new(upload_config)?),
