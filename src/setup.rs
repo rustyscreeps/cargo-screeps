@@ -7,6 +7,7 @@ use failure::format_err;
 pub struct CliConfig {
     pub command: Command,
     pub config_path: Option<PathBuf>,
+    pub deploy_target: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -14,8 +15,6 @@ pub enum Command {
     Check,
     Build,
     Deploy,
-    Upload,
-    Copy,
 }
 
 fn app() -> clap::App<'static, 'static> {
@@ -52,15 +51,15 @@ fn app() -> clap::App<'static, 'static> {
                 )
                 .subcommand(
                     clap::SubCommand::with_name("deploy")
-                        .about("run default deploy action (copy or upload)"),
-                )
-                .subcommand(
-                    clap::SubCommand::with_name("copy")
-                        .about("deploy by copying files to a local directory (implies build)"),
-                )
-                .subcommand(
-                    clap::SubCommand::with_name("upload")
-                        .about("deploy by uploading files to a remote server (implies build)"),
+                        .about("run target deploy action (or the default if none is specified)")
+                        .arg(
+                            clap::Arg::with_name("target")
+                                .short("t")
+                                .long("target")
+                                .multiple(false)
+                                .takes_value(true)
+                                .value_name("DEPLOY_TARGET"),
+                        ),
                 ),
         )
 }
@@ -89,13 +88,15 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
         Some("build") => Command::Build,
         Some("check") => Command::Check,
         Some("deploy") => Command::Deploy,
-        Some("copy") => Command::Copy,
-        Some("upload") => Command::Upload,
         other => panic!("unexpected subcommand {:?}", other),
     };
     let config = CliConfig {
         command,
         config_path: args.value_of("config").map(Into::into),
+        deploy_target: match args.subcommand_matches("deploy") {
+            Some(deploy_args) => deploy_args.value_of("target").map(Into::into),
+            None => None,
+        },
     };
 
     Ok(config)

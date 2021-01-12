@@ -17,7 +17,7 @@ pub fn run() -> Result<(), failure::Error> {
         .config_path
         .unwrap_or_else(|| root.join("screeps.toml").to_owned());
 
-    let config = config::Configuration::read(&config_path)?;
+    let mut config = config::Configuration::read(&config_path)?;
 
     debug!(
         "Running {:?} at {:?} using config {:?} with values {:#?}",
@@ -25,23 +25,42 @@ pub fn run() -> Result<(), failure::Error> {
     );
 
     match cli_config.command {
-        setup::Command::Build => run_build(&root, &config)?,
+        setup::Command::Build => run_build(&root, &config.build)?,
         setup::Command::Check => run_check(&root)?,
-        setup::Command::Upload => {
-            run_build(&root, &config)?;
-            run_upload(&root, &config)?;
-        }
-        setup::Command::Copy => {
-            run_build(&root, &config)?;
-            run_copy(&root, &config)?;
-        }
         setup::Command::Deploy => {
-            run_build(&root, &config)?;
-            match config.default_deploy_mode.ok_or_else(|| {
-                format_err!("must have default_deploy_mode set to use 'cargo screeps deploy'")
+            let target = match cli_config.deploy_target.clone() {
+                Some(v) => v,
+                None => {
+                    config.default_deploy_target.clone().ok_or_else(|| {
+                        format_err!("must have default_deploy_target set to use 'cargo screeps deploy' without --target")
+                    })?
+                }
+            };
+
+            match config.targets.remove(&target).ok_or_else(|| {
+                format_err!(
+                    "couldn't find target {}, must be defined in screeps.toml",
+                    target
+                )
             })? {
-                config::DeployMode::Upload => run_upload(&root, &config)?,
-                config::DeployMode::Copy => run_copy(&root, &config)?,
+                target_config => match target_config.mode {
+                    config::DeployMode::Upload => {
+                        let upload_config = config::UploadConfiguration::new(target_config)?;
+                        match &upload_config.build {
+                            Some(build_config) => run_build(&root, build_config)?,
+                            None => run_build(&root, &config.build)?,
+                        }
+                        run_upload(&root, &upload_config)?
+                    }
+                    config::DeployMode::Copy => {
+                        let copy_config = config::CopyConfiguration::new(target_config)?;
+                        match &copy_config.build {
+                            Some(build_config) => run_build(&root, build_config)?,
+                            None => run_build(&root, &config.build)?,
+                        }
+                        run_copy(&root, &config, &copy_config)?
+                    }
+                },
             }
         }
     }
@@ -49,7 +68,7 @@ pub fn run() -> Result<(), failure::Error> {
     Ok(())
 }
 
-fn run_build(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
+fn run_build(root: &Path, config: &config::BuildConfiguration) -> Result<(), failure::Error> {
     info!("compiling...");
     build::build(root, config)?;
     info!("compiled.");
@@ -65,17 +84,24 @@ fn run_check(root: &Path) -> Result<(), failure::Error> {
     Ok(())
 }
 
-fn run_copy(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
+fn run_copy(
+    root: &Path,
+    config: &Configuration,
+    copy_config: &config::CopyConfiguration,
+) -> Result<(), failure::Error> {
     info!("copying...");
-    copy::copy(root, config)?;
+    copy::copy(root, config, copy_config)?;
     info!("copied.");
 
     Ok(())
 }
 
-fn run_upload(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
+fn run_upload(
+    root: &Path,
+    upload_config: &config::UploadConfiguration,
+) -> Result<(), failure::Error> {
     info!("uploading...");
-    upload::upload(root, config)?;
+    upload::upload(root, upload_config)?;
     info!("uploaded.");
 
     Ok(())

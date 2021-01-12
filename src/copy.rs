@@ -4,16 +4,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::format_err;
 use log::*;
 
-use crate::config::Configuration;
+use crate::config::{Configuration, CopyConfiguration};
 
-pub fn copy<P: AsRef<Path>>(root: P, config: &Configuration) -> Result<(), failure::Error> {
+pub fn copy<P: AsRef<Path>>(
+    root: P,
+    config: &Configuration,
+    copy_config: &CopyConfiguration,
+) -> Result<(), failure::Error> {
     let root = root.as_ref();
-    let copy_config = config.copy.as_ref().ok_or_else(|| {
-        format_err!("must include [copy] section in configuration to deploy using copy")
-    })?;
 
     // join root here so relative directories are correct even if 'cargo screeps' is
     // run in sub-directory.

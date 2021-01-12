@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeSet, HashMap},
     fs,
     path::{Path, PathBuf},
 };
@@ -16,6 +16,7 @@ pub struct BuildConfiguration {
     pub output_js_file: PathBuf,
     #[serde(default)]
     pub initialization_header_file: Option<PathBuf>,
+    pub features: Vec<String>,
 }
 
 impl Default for BuildConfiguration {
@@ -24,6 +25,7 @@ impl Default for BuildConfiguration {
             output_wasm_file: Self::default_output_wasm_file(),
             output_js_file: Self::default_output_js_file(),
             initialization_header_file: None,
+            features: vec![],
         }
     }
 }
@@ -38,25 +40,70 @@ impl BuildConfiguration {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct FileUploadConfiguration {
+pub struct FileTargetConfiguration {
+    pub mode: DeployMode,
+    #[serde(default = "default_branch")]
+    branch: String,
+    build: Option<BuildConfiguration>,
+    // upload options
     auth_token: Option<String>,
     username: Option<String>,
     password: Option<String>,
-    branch: String,
     #[serde(default = "default_hostname")]
     hostname: String,
     #[serde(default)]
     ssl: Option<bool>,
     port: Option<i32>,
-    #[serde(default = "default_ptr")]
-    ptr: bool,
+    prefix: Option<String>,
+    // copy options
+    destination: Option<PathBuf>,
+    #[serde(default = "default_prune")]
+    prune: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CopyConfiguration {
+    pub destination: PathBuf,
+    pub branch: String,
+    pub build: Option<BuildConfiguration>,
+    #[serde(default = "default_prune")]
+    pub prune: bool,
+}
+
+impl CopyConfiguration {
+    pub fn new(config: FileTargetConfiguration) -> Result<CopyConfiguration, failure::Error> {
+        let FileTargetConfiguration {
+            destination,
+            branch,
+            build,
+            prune,
+            ..
+        } = config;
+
+        let destination = if destination.is_some() {
+            destination.unwrap()
+        } else {
+            bail!("destination must be set for each copy section of the configuration")
+        };
+
+        Ok(CopyConfiguration {
+            destination,
+            branch,
+            build,
+            prune,
+        })
+    }
+}
+
+fn default_branch() -> String {
+    "default".to_owned()
 }
 
 fn default_hostname() -> String {
     "screeps.com".to_owned()
 }
 
-fn default_ptr() -> bool {
+fn default_prune() -> bool {
     false
 }
 
@@ -65,9 +112,10 @@ pub struct UploadConfiguration {
     pub authentication: Authentication,
     pub hostname: String,
     pub branch: String,
+    pub build: Option<BuildConfiguration>,
     pub ssl: bool,
     pub port: i32,
-    pub ptr: bool,
+    pub prefix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -76,53 +124,19 @@ pub enum Authentication {
     Basic { username: String, password: String },
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct CopyConfiguration {
-    pub destination: PathBuf,
-    pub branch: String,
-    #[serde(default = "default_prune")]
-    pub prune: bool,
-}
-
-fn default_prune() -> bool {
-    false
-}
-
-#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum DeployMode {
-    Copy,
-    Upload,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-struct FileConfiguration {
-    default_deploy_mode: Option<DeployMode>,
-    #[serde(default)]
-    build: BuildConfiguration,
-    upload: Option<FileUploadConfiguration>,
-    copy: Option<CopyConfiguration>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Configuration {
-    pub default_deploy_mode: Option<DeployMode>,
-    pub build: BuildConfiguration,
-    pub copy: Option<CopyConfiguration>,
-    pub upload: Option<UploadConfiguration>,
-}
-
 impl UploadConfiguration {
-    fn new(config: FileUploadConfiguration) -> Result<UploadConfiguration, failure::Error> {
-        let FileUploadConfiguration {
+    pub fn new(config: FileTargetConfiguration) -> Result<UploadConfiguration, failure::Error> {
+        let FileTargetConfiguration {
             auth_token,
             username,
             password,
             branch,
+            build,
             hostname,
             ssl,
             port,
-            ptr,
+            prefix,
+            ..
         } = config;
 
         let ssl = ssl.unwrap_or_else(|| hostname == "screeps.com");
@@ -142,24 +156,43 @@ impl UploadConfiguration {
         Ok(UploadConfiguration {
             authentication,
             branch,
+            build,
             hostname,
             ssl,
             port,
-            ptr,
+            prefix,
         })
     }
+}
+
+#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum DeployMode {
+    Copy,
+    Upload,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct FileConfiguration {
+    default_deploy_target: Option<String>,
+    #[serde(default)]
+    build: BuildConfiguration,
+    targets: HashMap<String, FileTargetConfiguration>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Configuration {
+    pub default_deploy_target: Option<String>,
+    pub build: BuildConfiguration,
+    pub targets: HashMap<String, FileTargetConfiguration>,
 }
 
 impl Configuration {
     fn new(config: FileConfiguration) -> Result<Configuration, failure::Error> {
         Ok(Configuration {
-            default_deploy_mode: config.default_deploy_mode,
+            default_deploy_target: config.default_deploy_target,
             build: config.build,
-            upload: match config.upload {
-                Some(upload_config) => Some(UploadConfiguration::new(upload_config)?),
-                None => None,
-            },
-            copy: config.copy,
+            targets: config.targets,
         })
     }
 }

@@ -1,20 +1,37 @@
-default_deploy_mode = "upload"
-
-[upload]
-auth_token = "your auth token"
-branch = "default"
-# username = "your username or email"
-# password = "your password"
-# ptr = false
-# hostname = "screeps.com"
-# ssl = true
-# port = 443
-
-# [copy]
-# destination = "your copy destination"
-# prune = false
+default_deploy_target = "upload"
 
 # [build]
 # use absolute file path to get out of "target/"
 # ouptut_js_file = "main.js"
 # output_wasm_file = "compiled.wasm"
+# features = []
+
+[targets.upload]
+mode = "upload"
+# either auth_token or username and password required for upload
+auth_token = "your auth token"
+# username = "your username or email"
+# password = "your password"
+# branch = "default"
+# ptr = false
+# hostname = "screeps.com"
+# ssl = true
+# port = 443
+
+# [targets.ptr]
+# mode = "upload"
+# auth_token = "your auth token"
+# prefix = "ptr"
+
+# [targets.season]
+# mode = "upload"
+# auth_token = "your auth token"
+# prefix = "season"
+# # override global build section per-target if desired
+# [targets.season.build]
+#   features = ["seasonal-season-1"]
+
+# [targets.copy]
+# mode = "copy"
+# destination = "your copy destination"
+# prune = false

@@ -1,16 +1,12 @@
 use std::{collections::HashMap, fs, io::Read, path::Path};
 
-use failure::{bail, ensure, format_err};
+use failure::{bail, ensure};
 use log::*;
 use serde::Serialize;
 
-use crate::config::{Authentication, Configuration};
+use crate::config::{Authentication, UploadConfiguration};
 
-pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
-    let upload_config = config.upload.as_ref().ok_or_else(|| {
-        format_err!("must include [upload] section in configuration to deploy using upload")
-    })?;
-
+pub fn upload(root: &Path, upload_config: &UploadConfiguration) -> Result<(), failure::Error> {
     let target_dir = root.join("target");
 
     let mut files = HashMap::new();
@@ -49,10 +45,9 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
         if upload_config.ssl { "https" } else { "http" },
         upload_config.hostname,
         upload_config.port,
-        if upload_config.ptr {
-            "ptr/api/user/code"
-        } else {
-            "api/user/code"
+        match &upload_config.prefix {
+            Some(prefix) => format!("{}/api/user/code", prefix),
+            None => "api/user/code".to_string(),
         }
     );
 
