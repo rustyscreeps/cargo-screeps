@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::{bail, ensure, ResultExt};
+use failure::{ensure, ResultExt};
 use log::*;
 use serde::Deserialize;
 
@@ -16,6 +16,7 @@ pub struct BuildConfiguration {
     pub output_js_file: PathBuf,
     #[serde(default)]
     pub initialization_header_file: Option<PathBuf>,
+    #[serde(default)]
     pub features: Vec<String>,
 }
 
@@ -40,59 +41,45 @@ impl BuildConfiguration {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct FileTargetConfiguration {
-    pub mode: DeployMode,
-    #[serde(default = "default_branch")]
-    branch: String,
-    build: Option<BuildConfiguration>,
-    // upload options
-    auth_token: Option<String>,
-    username: Option<String>,
-    password: Option<String>,
-    #[serde(default = "default_hostname")]
-    hostname: String,
+pub struct BuildOverrides {
     #[serde(default)]
-    ssl: Option<bool>,
-    port: Option<i32>,
-    prefix: Option<String>,
-    // copy options
-    destination: Option<PathBuf>,
-    #[serde(default = "default_prune")]
-    prune: bool,
+    pub output_wasm_file: Option<PathBuf>,
+    #[serde(default)]
+    pub output_js_file: Option<PathBuf>,
+    #[serde(default)]
+    pub initialization_header_file: Option<PathBuf>,
+    #[serde(default)]
+    pub features: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct CopyConfiguration {
-    pub destination: PathBuf,
-    pub branch: String,
-    pub build: Option<BuildConfiguration>,
-    #[serde(default = "default_prune")]
-    pub prune: bool,
-}
-
-impl CopyConfiguration {
-    pub fn new(config: FileTargetConfiguration) -> Result<CopyConfiguration, failure::Error> {
-        let FileTargetConfiguration {
-            destination,
-            branch,
-            build,
-            prune,
-            ..
-        } = config;
-
-        let destination = if destination.is_some() {
-            destination.unwrap()
-        } else {
-            bail!("destination must be set for each copy section of the configuration")
-        };
-
-        Ok(CopyConfiguration {
-            destination,
-            branch,
-            build,
-            prune,
-        })
-    }
+#[serde(untagged, rename_all = "lowercase")]
+pub enum ModeConfiguration {
+    Copy {
+        destination: PathBuf,
+        #[serde(default = "default_branch")]
+        branch: String,
+        #[serde(default)]
+        build: Option<BuildOverrides>,
+        #[serde(default = "default_prune")]
+        prune: bool,
+    },
+    Upload {
+        #[serde(flatten)]
+        authentication: Authentication,
+        #[serde(default = "default_branch")]
+        branch: String,
+        #[serde(default)]
+        build: Option<BuildOverrides>,
+        #[serde(default = "default_hostname")]
+        hostname: String,
+        #[serde(default = "default_ssl")]
+        ssl: bool,
+        #[serde(default = "default_port")]
+        port: u16,
+        #[serde(default)]
+        prefix: Option<String>,
+    },
 }
 
 fn default_branch() -> String {
@@ -107,94 +94,28 @@ fn default_prune() -> bool {
     false
 }
 
-#[derive(Clone, Debug)]
-pub struct UploadConfiguration {
-    pub authentication: Authentication,
-    pub hostname: String,
-    pub branch: String,
-    pub build: Option<BuildConfiguration>,
-    pub ssl: bool,
-    pub port: i32,
-    pub prefix: Option<String>,
+fn default_ssl() -> bool {
+    true
 }
 
-#[derive(Clone, Debug)]
-pub enum Authentication {
-    Token(String),
-    Basic { username: String, password: String },
-}
-
-impl UploadConfiguration {
-    pub fn new(config: FileTargetConfiguration) -> Result<UploadConfiguration, failure::Error> {
-        let FileTargetConfiguration {
-            auth_token,
-            username,
-            password,
-            branch,
-            build,
-            hostname,
-            ssl,
-            port,
-            prefix,
-            ..
-        } = config;
-
-        let ssl = ssl.unwrap_or_else(|| hostname == "screeps.com");
-        let port = port.unwrap_or_else(|| if ssl { 443 } else { 80 });
-
-        let authentication = if auth_token.is_some() {
-            Authentication::Token(auth_token.unwrap())
-        } else if username.is_some() && password.is_some() {
-            Authentication::Basic {
-                username: username.unwrap(),
-                password: password.unwrap(),
-            }
-        } else {
-            bail!("either auth_token or username/password must be set in the [upload] section of the configuration");
-        };
-
-        Ok(UploadConfiguration {
-            authentication,
-            branch,
-            build,
-            hostname,
-            ssl,
-            port,
-            prefix,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum DeployMode {
-    Copy,
-    Upload,
+fn default_port() -> u16 {
+    443
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct FileConfiguration {
-    default_deploy_target: Option<String>,
-    #[serde(default)]
-    build: BuildConfiguration,
-    targets: HashMap<String, FileTargetConfiguration>,
+#[serde(rename_all = "snake_case")]
+pub enum Authentication {
+    AuthToken(String),
+    Basic { username: String, password: String },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Configuration {
-    pub default_deploy_target: Option<String>,
+    pub default_deploy_mode: Option<String>,
+    #[serde(default)]
     pub build: BuildConfiguration,
-    pub targets: HashMap<String, FileTargetConfiguration>,
-}
-
-impl Configuration {
-    fn new(config: FileConfiguration) -> Result<Configuration, failure::Error> {
-        Ok(Configuration {
-            default_deploy_target: config.default_deploy_target,
-            build: config.build,
-            targets: config.targets,
-        })
-    }
+    #[serde(flatten)]
+    pub modes: HashMap<String, ModeConfiguration>,
 }
 
 impl Configuration {
@@ -218,7 +139,7 @@ impl Configuration {
 
         let mut unused_paths = BTreeSet::new();
 
-        let file_config: FileConfiguration =
+        let config: Configuration =
             serde_ignored::deserialize(&mut toml::Deserializer::new(&config_str), |unused_path| {
                 unused_paths.insert(unused_path.to_string());
             })
@@ -228,6 +149,6 @@ impl Configuration {
             warn!("unused configuration path: {}", path)
         }
 
-        Configuration::new(file_config)
+        Ok(config)
     }
 }

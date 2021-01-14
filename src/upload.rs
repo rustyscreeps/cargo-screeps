@@ -4,9 +4,17 @@ use failure::{bail, ensure};
 use log::*;
 use serde::Serialize;
 
-use crate::config::{Authentication, UploadConfiguration};
+use crate::config::Authentication;
 
-pub fn upload(root: &Path, upload_config: &UploadConfiguration) -> Result<(), failure::Error> {
+pub fn upload(
+    root: &Path,
+    authentication: &Authentication,
+    branch: &String,
+    hostname: &String,
+    ssl: bool,
+    port: u16,
+    prefix: &Option<String>,
+) -> Result<(), failure::Error> {
     let target_dir = root.join("target");
 
     let mut files = HashMap::new();
@@ -42,10 +50,10 @@ pub fn upload(root: &Path, upload_config: &UploadConfiguration) -> Result<(), fa
 
     let url = format!(
         "{}://{}:{}/{}",
-        if upload_config.ssl { "https" } else { "http" },
-        upload_config.hostname,
-        upload_config.port,
-        match &upload_config.prefix {
+        if ssl { "https" } else { "http" },
+        hostname,
+        port,
+        match prefix {
             Some(prefix) => format!("{}/api/user/code", prefix),
             None => "api/user/code".to_string(),
         }
@@ -57,10 +65,10 @@ pub fn upload(root: &Path, upload_config: &UploadConfiguration) -> Result<(), fa
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), &upload_config.authentication)
+    let mut response = authenticate(client.post(&url), authentication)
         .json(&RequestData {
             modules: files,
-            branch: upload_config.branch.clone(),
+            branch: branch.clone(),
         })
         .send()?;
 
@@ -81,7 +89,7 @@ pub fn upload(root: &Path, upload_config: &UploadConfiguration) -> Result<(), fa
     if let Some(s) = response_json.get("error") {
         bail!(
             "error sending to branch '{}' of '{}': {}",
-            upload_config.branch,
+            branch,
             response.url(),
             s
         );
@@ -95,7 +103,7 @@ fn authenticate(
     authentication: &Authentication,
 ) -> reqwest::RequestBuilder {
     match authentication {
-        Authentication::Token(ref token) => request.header("X-Token", token.as_str()),
+        Authentication::AuthToken(ref token) => request.header("X-Token", token.as_str()),
         Authentication::Basic {
             ref username,
             ref password,

@@ -7,7 +7,7 @@ use failure::format_err;
 pub struct CliConfig {
     pub command: Command,
     pub config_path: Option<PathBuf>,
-    pub deploy_target: Option<String>,
+    pub deploy_mode: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -51,15 +51,19 @@ fn app() -> clap::App<'static, 'static> {
                 )
                 .subcommand(
                     clap::SubCommand::with_name("deploy")
-                        .about("run target deploy action (or the default if none is specified)")
+                        .about("run specified deploy mode (or the default if none is specified)")
                         .arg(
-                            clap::Arg::with_name("target")
-                                .short("t")
-                                .long("target")
+                            clap::Arg::with_name("mode")
+                                .short("m")
+                                .long("mode")
                                 .multiple(false)
                                 .takes_value(true)
-                                .value_name("DEPLOY_TARGET"),
+                                .value_name("DEPLOY_MODE"),
                         ),
+                )
+                .subcommand(clap::SubCommand::with_name("copy").about("run the copy deploy mode"))
+                .subcommand(
+                    clap::SubCommand::with_name("upload").about("run the upload deploy mode"),
                 ),
         )
 }
@@ -84,19 +88,29 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
         .apply()
         .unwrap();
 
+    let mut mode = match args.subcommand_matches("deploy") {
+        Some(deploy_args) => deploy_args.value_of("mode").map(Into::into),
+        None => None,
+    };
+
     let command = match args.subcommand_name() {
         Some("build") => Command::Build,
         Some("check") => Command::Check,
         Some("deploy") => Command::Deploy,
+        Some("copy") => {
+            mode = Some("copy".to_owned());
+            Command::Deploy
+        }
+        Some("upload") => {
+            mode = Some("upload".to_owned());
+            Command::Deploy
+        }
         other => panic!("unexpected subcommand {:?}", other),
     };
     let config = CliConfig {
         command,
         config_path: args.value_of("config").map(Into::into),
-        deploy_target: match args.subcommand_matches("deploy") {
-            Some(deploy_args) => deploy_args.value_of("target").map(Into::into),
-            None => None,
-        },
+        deploy_mode: mode,
     };
 
     Ok(config)

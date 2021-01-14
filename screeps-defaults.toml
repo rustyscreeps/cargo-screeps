@@ -1,37 +1,45 @@
-default_deploy_target = "upload"
+default_deploy_mode = "upload"
 
 # [build]
-# use absolute file path to get out of "target/"
-# ouptut_js_file = "main.js"
+# # use absolute file path to get out of "target/"
+# output_js_file = "main.js"
 # output_wasm_file = "compiled.wasm"
 # features = []
 
-[targets.upload]
-mode = "upload"
-# either auth_token or username and password required for upload
+# Add any number of deployment modes below; when deploying, select which mode to use with
+# `cargo screeps deploy -m modename`
+# Each requires at least a destination (to deploy to a filesystem path), or authentication
+# credentials (to upload to a server via API), which can be either an auth_token or
+# username and password.
+
+[upload]
 auth_token = "your auth token"
 # username = "your username or email"
 # password = "your password"
+# # The following are the default values for the optional upload options, uncomment to change
 # branch = "default"
-# ptr = false
 # hostname = "screeps.com"
 # ssl = true
 # port = 443
+# # This option has no default - any string value will set a path prefix in the API URL,
+# # such as "ptr" and "season" to reach the APIs of those environments
+# prefix = "url_prefix"
 
-# [targets.ptr]
-# mode = "upload"
+# [copy]
+# destination = "your copy destination without the branch directory"
+# # The following are the default values for the optional copy options, uncomment to change
+# branch = "default"
+# prune = false
+# # Override global build section items for any mode, if needed
+# [copy.build]
+#   features = ["private-server"]
+
+# [ptr]
 # auth_token = "your auth token"
 # prefix = "ptr"
 
-# [targets.season]
-# mode = "upload"
+# [season]
 # auth_token = "your auth token"
 # prefix = "season"
-# # override global build section per-target if desired
-# [targets.season.build]
-#   features = ["seasonal-season-1"]
-
-# [targets.copy]
-# mode = "copy"
-# destination = "your copy destination"
-# prune = false
+# [season.build]
+#   features = ["my-crate-season-1-feature"]
