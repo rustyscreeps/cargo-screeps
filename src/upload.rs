@@ -103,7 +103,7 @@ fn authenticate(
     authentication: &Authentication,
 ) -> reqwest::RequestBuilder {
     match authentication {
-        Authentication::AuthToken(ref token) => request.header("X-Token", token.as_str()),
+        Authentication::Token { ref auth_token } => request.header("X-Token", auth_token.as_str()),
         Authentication::Basic {
             ref username,
             ref password,

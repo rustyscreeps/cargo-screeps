@@ -103,9 +103,9 @@ fn default_port() -> u16 {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(untagged)]
 pub enum Authentication {
-    AuthToken(String),
+    Token { auth_token: String },
     Basic { username: String, password: String },
 }
 
