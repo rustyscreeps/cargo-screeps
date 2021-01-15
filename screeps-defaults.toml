@@ -31,7 +31,7 @@ auth_token = "your auth token"
 # branch = "default"
 # prune = false
 # # Override global build section items for any mode, if needed
-# [copy.build]
+#   [copy.build]
 #   features = ["private-server"]
 
 # [ptr]
@@ -41,5 +41,5 @@ auth_token = "your auth token"
 # [season]
 # auth_token = "your auth token"
 # prefix = "season"
-# [season.build]
+#   [season.build]
 #   features = ["my-crate-season-1-feature"]
