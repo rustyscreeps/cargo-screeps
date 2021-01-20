@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 use failure::{bail, ensure};
 use log::*;
@@ -10,39 +15,43 @@ pub fn upload(
     root: &Path,
     authentication: &Authentication,
     branch: &String,
+    include_files: &Vec<PathBuf>,
     hostname: &String,
     ssl: bool,
     port: u16,
     prefix: &Option<String>,
 ) -> Result<(), failure::Error> {
-    let target_dir = root.join("target");
-
     let mut files = HashMap::new();
-    for entry in fs::read_dir(target_dir)? {
-        let entry = entry?;
-        let path = entry.path();
 
-        if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
-            let contents = if extension == "js" {
-                let data = {
-                    let mut buf = String::new();
-                    fs::File::open(&path)?.read_to_string(&mut buf)?;
-                    buf
-                };
-                serde_json::Value::String(data)
-            } else if extension == "wasm" {
-                let data = {
-                    let mut buf = Vec::new();
-                    fs::File::open(&path)?.read_to_end(&mut buf)?;
-                    buf
-                };
-                let data = base64::encode(&data);
-                serde_json::json!({ "binary": data })
-            } else {
-                continue;
-            };
+    for target in include_files {
+        let target_dir = root.join(target);
 
-            files.insert(name.to_string_lossy().into_owned(), contents);
+        for entry in fs::read_dir(target_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
+                let contents = if extension == "js" {
+                    let data = {
+                        let mut buf = String::new();
+                        fs::File::open(&path)?.read_to_string(&mut buf)?;
+                        buf
+                    };
+                    serde_json::Value::String(data)
+                } else if extension == "wasm" {
+                    let data = {
+                        let mut buf = Vec::new();
+                        fs::File::open(&path)?.read_to_end(&mut buf)?;
+                        buf
+                    };
+                    let data = base64::encode(&data);
+                    serde_json::json!({ "binary": data })
+                } else {
+                    continue;
+                };
+
+                files.insert(name.to_string_lossy().into_owned(), contents);
+            }
         }
     }
 

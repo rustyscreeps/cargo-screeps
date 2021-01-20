@@ -10,9 +10,8 @@ pub fn copy<P: AsRef<Path>>(
     root: P,
     destination: &PathBuf,
     branch: &String,
+    include_files: &Vec<PathBuf>,
     prune: bool,
-    output_js_file: &PathBuf,
-    output_wasm_file: &PathBuf,
 ) -> Result<(), failure::Error> {
     let root = root.as_ref();
 
@@ -22,15 +21,23 @@ pub fn copy<P: AsRef<Path>>(
 
     fs::create_dir_all(&output_dir)?;
 
-    let target_dir = root.join("target");
-
     let mut deployed: HashSet<PathBuf> = HashSet::new();
 
-    for filename in &[&output_js_file, &output_wasm_file] {
-        let path = target_dir.join(filename);
-        let output_path = output_dir.join(filename);
-        fs::copy(&path, &output_path)?;
-        deployed.insert(output_path);
+    for target in include_files {
+        let target_dir = root.join(target);
+
+        for entry in fs::read_dir(target_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if let (Some(name), Some(extension)) = (path.file_name(), path.extension()) {
+                if extension == "wasm" || extension == "js" {
+                    let output_path = output_dir.join(name);
+                    fs::copy(&path, &output_path)?;
+                    deployed.insert(path);
+                }
+            }
+        }
     }
 
     if prune {

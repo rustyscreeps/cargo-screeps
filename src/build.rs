@@ -1,32 +1,11 @@
-use std::{borrow::Cow, env, ffi::OsStr, fs, io::Write, path::Path};
+use std::{env, ffi::OsStr, fs, io::Write, path::Path};
 
-use cargo_web::{BuildOpts, CargoWebOpts, CheckOpts};
-use failure::{bail, ensure, format_err};
+use failure::{ensure, format_err};
 use log::*;
-use structopt::StructOpt;
 
-use crate::config::BuildConfiguration;
+use wasm_pack::command::build::{Build, BuildOptions, Target};
 
-pub fn check(root: &Path) -> Result<(), failure::Error> {
-    debug!("running check");
-
-    debug!("changing directory to {}", root.display());
-
-    env::set_current_dir(&root)?;
-
-    debug!("running cargo-web check --target=wasm32-unknown-unknown");
-
-    let res = cargo_web::run(CargoWebOpts::Check(
-        CheckOpts::from_iter_safe(&["--target=wasm32-unknown-unknown"])
-            .expect("expected hardcoded cargo-web args to be valid"),
-    ));
-    if let Err(e) = res {
-        bail!("cargo-web check failed: {}", e);
-    }
-
-    debug!("finished executing cargo-web check");
-    Ok(())
-}
+use crate::config::{BuildConfiguration, BuildProfile};
 
 pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failure::Error> {
     debug!("building");
@@ -35,47 +14,45 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 
     env::set_current_dir(&root)?;
 
-    let mut args = vec![
-        "--target=wasm32-unknown-unknown".to_owned(),
-        "--release".to_owned(),
-    ];
+    debug!("running wasm-pack build");
 
-    if build_config.features.len() > 0 {
-        args.push(format!("--features={}", build_config.features.join(" ")));
-    }
+    // get the out_name from the build config, or use bindgen's default of the working directory name
+    let out_name = match &build_config.out_name {
+        Some(v) => v.clone(),
+        None => root.file_stem().unwrap().to_str().unwrap().to_string(),
+    };
 
-    debug!("running cargo-web build {}", args.join(" "));
+    let (dev, profiling, release) = match &build_config.build_profile {
+        Some(profile) => match profile {
+            BuildProfile::Dev => (true, false, false),
+            BuildProfile::Profiling => (false, true, false),
+            BuildProfile::Release => (false, false, true),
+        },
+        None => (false, false, true),
+    };
 
-    let res = cargo_web::run(CargoWebOpts::Build(
-        BuildOpts::from_iter_safe(&args).expect("expected cargo-web args to be valid"),
-    ));
-    if let Err(e) = res {
-        bail!("cargo-web build failed: {}", e);
-    }
+    let options = BuildOptions {
+        target: Target::Nodejs,
+        out_dir: "pkg".to_string(),
+        out_name: Some(out_name.clone()),
+        extra_options: build_config.extra_options.clone(),
+        dev,
+        release,
+        profiling,
+        ..Default::default()
+    };
 
-    debug!("finished executing cargo-web build");
+    Build::try_from_opts(options).and_then(|mut b| b.run())?;
 
-    let target_dir = root
-        .join("target")
-        .join("wasm32-unknown-unknown")
-        .join("release");
-    // TODO: actually use 'cargo metadata' to get exact filename that will be
-    // built, rather than using this hack.
-    let mut wasm_file = None;
+    debug!("finished executing wasm-pack build");
+
+    let target_dir = root.join("pkg");
     let mut generated_js = None;
     for r in fs::read_dir(&target_dir)? {
         let entry = r?;
         let file_name = entry.file_name();
         let file_name = Path::new(&file_name);
         match file_name.extension().and_then(OsStr::to_str) {
-            Some("wasm") => {
-                ensure!(
-                    wasm_file.is_none(),
-                    "error: multiple wasm files found in {}",
-                    target_dir.display()
-                );
-                wasm_file = Some(entry.path());
-            }
             Some("js") => {
                 ensure!(
                     generated_js.is_none(),
@@ -87,126 +64,39 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
             _ => {}
         }
     }
-    let wasm_file = wasm_file
-        .ok_or_else(|| format_err!("error: no wasm files found in {}", target_dir.display()))?;
     let generated_js = generated_js
         .ok_or_else(|| format_err!("error: no js files found in {}", target_dir.display()))?;
-
-    let out_dir = root.join("target");
-
-    debug!("copying wasm file");
-
-    fs::create_dir_all(&out_dir)?;
-
-    fs::copy(wasm_file, out_dir.join(&build_config.output_wasm_file))?;
 
     debug!("processing js file");
 
     let generated_js_contents = fs::read_to_string(&generated_js)?;
 
-    let processed_js = process_js(&generated_js, &generated_js_contents, &root, &build_config)?;
+    let processed_js = process_js(&generated_js, &generated_js_contents, &out_name)?;
 
-    let out_file = out_dir.join(&build_config.output_js_file);
+    debug!("writing processed js to {}", generated_js.display());
 
-    debug!("writing to {}", out_file.display());
-
-    let mut output_handle = fs::File::create(out_file)?;
+    let mut output_handle = fs::File::create(generated_js)?;
     output_handle.write_all(processed_js.as_bytes())?;
     output_handle.flush()?;
 
     Ok(())
 }
 
-fn process_js(
-    file_name: &Path,
-    input: &str,
-    root: &Path,
-    config: &BuildConfiguration,
-) -> Result<String, failure::Error> {
-    // first, strip out bootstrap code which relates to the browser. We don't want
-    // to run this, we just want to call `__initialize` ourself.
-    //
-    // TODO: this is currently quite brittle and tied to the
-    // version of "cargo web"...
-    let whitespace_regex = regex::Regex::new("\\s+").expect("expected pre-set regex to succeed");
-    let make_into_slightly_less_brittle_regex = |input: &str| {
-        whitespace_regex
-            .replace_all(&regex::escape(input), "\\s*")
-            .replace("XXX", "[A-Za-z0-9_-]*")
-    };
-    let expected_prefix = r#""use strict";
+fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String, failure::Error> {
+    // first, replace the TextEncoder/TextDecoder load step with a polyfill,
+    // as screeps' js environment doesn't give us access to `util`.
+    // also remove the filesystem load of the wasm bytes and replace with a simple require.
+    let bindgen_output_regex = regex::Regex::new(&format!(
+        "(?s)(.+){}(.+){}[^\']+{}(.+)",
+        regex::escape("const { TextDecoder, TextEncoder } = require(String.raw`util`);"),
+        regex::escape("const path = require('path').join(__dirname, '"),
+        regex::escape(".wasm');\nconst bytes = require('fs').readFileSync(path);"),
+    ))
+    .expect("expected pre-set regex to succeed");
 
-if( typeof Rust === "undefined" ) {
-    var Rust = {};
-}
-
-(function( root, factory ) {
-    if( typeof define === "function" && define.amd ) {
-        define( [], factory );
-    } else if( typeof module === "object" && module.exports ) {
-        module.exports = factory();
-    } else {
-        Rust.XXX = factory();
-    }
-}( this, function() {
-    return (function( module_factory ) {
-        var instance = module_factory();
-
-        if( typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string" ) {
-            var fs = require( "fs" );
-            var path = require( "path" );
-            var wasm_path = path.join( __dirname, "XXX.wasm" );
-            var buffer = fs.readFileSync( wasm_path );
-            var mod = new WebAssembly.Module( buffer );
-            var wasm_instance = new WebAssembly.Instance( mod, instance.imports );
-            return instance.initialize( wasm_instance );
-        } else {
-            var file = fetch( "XXX.wasm", {credentials: "same-origin"} );
-
-            var wasm_instance = ( typeof WebAssembly.instantiateStreaming === "function"
-                ? WebAssembly.instantiateStreaming( file, instance.imports )
-                    .then( function( result ) { return result.instance; } )
-
-                : file
-                    .then( function( response ) { return response.arrayBuffer(); } )
-                    .then( function( bytes ) { return WebAssembly.compile( bytes ); } )
-                    .then( function( mod ) { return WebAssembly.instantiate( mod, instance.imports ) } ) );
-
-            return wasm_instance
-                .then( function( wasm_instance ) {
-                    var exports = instance.initialize( wasm_instance );
-                    console.log( "Finished loading Rust wasm module 'XXX'" );
-                    return exports;
-                })
-                .catch( function( error ) {
-                    console.log( "Error loading Rust wasm module 'XXX':", error );
-                    throw error;
-                });
-        }
-    }( function() {"#;
-
-    let expected_suffix = r#"
-    }
-     ));
-    }));
-    "#;
-
-    let expected_prefix = regex::Regex::new(&format!(
-        "^{}",
-        make_into_slightly_less_brittle_regex(expected_prefix)
-    ))?;
-
-    let expected_suffix = regex::Regex::new(&format!(
-        "{}$",
-        make_into_slightly_less_brittle_regex(expected_suffix)
-    ))?;
-
-    debug!("expected prefix:\n```{}```", expected_prefix);
-    debug!("expected suffix:\n```{}```", expected_suffix);
-
-    let prefix_match = expected_prefix.find(input).ok_or_else(|| {
+    let captures = bindgen_output_regex.captures(input).ok_or_else(|| {
         format_err!(
-            "'cargo web' generated unexpected JS prefix! This means it's updated without \
+            "'wasm-pack' generated unexpected JS output! This means it's updated without \
              'cargo screeps' also having updated. Please report this issue to \
              https://github.com/rustyscreeps/cargo-screeps/issues and include \
              the first ~30 lines of {}",
@@ -214,58 +104,17 @@ if( typeof Rust === "undefined" ) {
         )
     })?;
 
-    let suffix_match = expected_suffix.find(input).ok_or_else(|| {
-        format_err!(
-            "'cargo web' generated unexpected JS suffix! This means it's updated without \
-             'cargo screeps' also having updated. Please report this issue to \
-             https://github.com/rustyscreeps/cargo-screeps/issues and include \
-             the last ~30 lines of {}",
-            file_name.display(),
-        )
-    })?;
-
-    let initialize_function = &input[prefix_match.end()..suffix_match.start()];
-
-    // screeps doesn't have `console.error`, so we define our own `console_error`
-    // function, and call it.
-    let initialize_function = initialize_function.replace("console.error", "console_error");
-
-    let wasm_module_name = config
-        .output_wasm_file
-        .file_stem()
-        .ok_or_else(|| {
-            format_err!(
-                "expected output_wasm_file ending in a filename, but found {}",
-                config.output_wasm_file.display()
-            )
-        })?
-        .to_str()
-        .ok_or_else(|| {
-            format_err!(
-                "expected output_wasm_file with UTF8 filename, but found {}",
-                config.output_wasm_file.display()
-            )
-        })?;
-
-    let initialization_header: Cow<'static, str> = match config.initialization_header_file.as_ref()
-    {
-        Some(header_file) => fs::read_to_string(root.join(header_file))?.into(),
-        None => include_str!("../resources/default_initialization_header.js").into(),
-    };
-
+    // CC-0 TextEncoder/TextDecoder polyfill from https://github.com/anonyco/FastestSmallestTextEncoderDecoder
     Ok(format!(
         r#"{}
-
-function wasm_fetch_module_bytes() {{
-    "use strict";
-    return require('{}');
-}}
-
-function wasm_create_stdweb_vars() {{
-    "use strict";
-    {}
-}}
-"#,
-        initialization_header, wasm_module_name, initialize_function,
+'use strict';(function(r){{function x(){{}}function y(){{}}var z=String.fromCharCode,v={{}}.toString,A=v.call(r.SharedArrayBuffer),B=v(),q=r.Uint8Array,t=q||Array,w=q?ArrayBuffer:t,C=w.isView||function(g){{return g&&"length"in g}},D=v.call(w.prototype);w=y.prototype;var E=r.TextEncoder,a=new (q?Uint16Array:t)(32);x.prototype.decode=function(g){{if(!C(g)){{var l=v.call(g);if(l!==D&&l!==A&&l!==B)throw TypeError("Failed to execute 'decode' on 'TextDecoder': The provided value is not of type '(ArrayBuffer or ArrayBufferView)'");
+g=q?new t(g):g||[]}}for(var f=l="",b=0,c=g.length|0,u=c-32|0,e,d,h=0,p=0,m,k=0,n=-1;b<c;){{for(e=b<=u?32:c-b|0;k<e;b=b+1|0,k=k+1|0){{d=g[b]&255;switch(d>>4){{case 15:m=g[b=b+1|0]&255;if(2!==m>>6||247<d){{b=b-1|0;break}}h=(d&7)<<6|m&63;p=5;d=256;case 14:m=g[b=b+1|0]&255,h<<=6,h|=(d&15)<<6|m&63,p=2===m>>6?p+4|0:24,d=d+256&768;case 13:case 12:m=g[b=b+1|0]&255,h<<=6,h|=(d&31)<<6|m&63,p=p+7|0,b<c&&2===m>>6&&h>>p&&1114112>h?(d=h,h=h-65536|0,0<=h&&(n=(h>>10)+55296|0,d=(h&1023)+56320|0,31>k?(a[k]=n,k=k+1|0,n=-1):
+(m=n,n=d,d=m))):(d>>=8,b=b-d-1|0,d=65533),h=p=0,e=b<=u?32:c-b|0;default:a[k]=d;continue;case 11:case 10:case 9:case 8:}}a[k]=65533}}f+=z(a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7],a[8],a[9],a[10],a[11],a[12],a[13],a[14],a[15],a[16],a[17],a[18],a[19],a[20],a[21],a[22],a[23],a[24],a[25],a[26],a[27],a[28],a[29],a[30],a[31]);32>k&&(f=f.slice(0,k-32|0));if(b<c){{if(a[0]=n,k=~n>>>31,n=-1,f.length<l.length)continue}}else-1!==n&&(f+=z(n));l+=f;f=""}}return l}};w.encode=function(g){{g=void 0===g?"":""+g;var l=g.length|
+0,f=new t((l<<1)+8|0),b,c=0,u=!q;for(b=0;b<l;b=b+1|0,c=c+1|0){{var e=g.charCodeAt(b)|0;if(127>=e)f[c]=e;else{{if(2047>=e)f[c]=192|e>>6;else{{a:{{if(55296<=e)if(56319>=e){{var d=g.charCodeAt(b=b+1|0)|0;if(56320<=d&&57343>=d){{e=(e<<10)+d-56613888|0;if(65535<e){{f[c]=240|e>>18;f[c=c+1|0]=128|e>>12&63;f[c=c+1|0]=128|e>>6&63;f[c=c+1|0]=128|e&63;continue}}break a}}e=65533}}else 57343>=e&&(e=65533);!u&&b<<1<c&&b<<1<(c-7|0)&&(u=!0,d=new t(3*l),d.set(f),f=d)}}f[c]=224|e>>12;f[c=c+1|0]=128|e>>6&63}}f[c=c+1|0]=128|e&63}}}}return q?
+f.subarray(0,c):f.slice(0,c)}};E||(r.TextDecoder=x,r.TextEncoder=y)}})(""+void 0==typeof global?""+void 0==typeof self?this:self:global);
+{}
+const bytes = require('{}_bg');
+{}"#,
+        &captures[1], &captures[2], out_name, &captures[3]
     ))
 }
