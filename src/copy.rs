@@ -34,7 +34,7 @@ pub fn copy<P: AsRef<Path>>(
                 if extension == "wasm" || extension == "js" {
                     let output_path = output_dir.join(name);
                     fs::copy(&path, &output_path)?;
-                    deployed.insert(path);
+                    deployed.insert(output_path);
                 }
             }
         }
