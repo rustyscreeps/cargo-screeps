@@ -87,7 +87,7 @@ fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String
     // as screeps' js environment doesn't give us access to `util`.
     // also remove the filesystem load of the wasm bytes and replace with a simple require.
     let bindgen_output_regex = regex::Regex::new(&format!(
-        "(?s)(.+){}(.+){}[^\']+{}(.+)",
+        "(?s)(.+){}(.+){}[^\']+{}.+",
         regex::escape("const { TextDecoder, TextEncoder } = require(String.raw`util`);"),
         regex::escape("const path = require('path').join(__dirname, '"),
         regex::escape(".wasm');\nconst bytes = require('fs').readFileSync(path);"),
@@ -114,7 +114,13 @@ g=q?new t(g):g||[]}}for(var f=l="",b=0,c=g.length|0,u=c-32|0,e,d,h=0,p=0,m,k=0,n
 f.subarray(0,c):f.slice(0,c)}};E||(r.TextDecoder=x,r.TextEncoder=y)}})(""+void 0==typeof global?""+void 0==typeof self?this:self:global);
 {}
 const bytes = require('{}_bg');
-{}"#,
-        &captures[1], &captures[2], out_name, &captures[3]
+
+const wasmModule = new WebAssembly.Module(bytes);
+module.exports.initialize_instance = function() {{
+    const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
+    wasm = wasmInstance.exports;
+    module.exports.__wasm = wasm;
+}}"#,
+        &captures[1], &captures[2], out_name
     ))
 }
