@@ -3,6 +3,7 @@ use std::{
     fs,
     io::Read,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use failure::{bail, ensure};
@@ -55,7 +56,9 @@ pub fn upload(
         }
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()?;
 
     let url = format!(
         "{}://{}:{}/{}",
