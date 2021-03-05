@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
 
 use failure::{bail, ensure};
 use log::*;
@@ -46,7 +46,9 @@ pub fn upload(
         }
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()?;
 
     let url = format!(
         "{}://{}:{}/{}",
