@@ -26,6 +26,8 @@ pub struct BuildConfiguration {
     #[merge(strategy = merge::vec::overwrite_empty)]
     #[serde(default)]
     pub extra_options: Vec<String>,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
