@@ -32,6 +32,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     };
 
     let options = BuildOptions {
+        path: build_config.path.clone(),
         target: Target::Nodejs,
         out_dir: "pkg".to_string(),
         out_name: Some(out_name.clone()),
