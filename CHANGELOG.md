@@ -1,6 +1,7 @@
 Unreleased
 ==================
 
+- Added configuration for upload HTTP request timeout `http_timeout` (#26)
 
 0.3.3 (2019-07-20)
 ==================
