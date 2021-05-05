@@ -53,7 +53,7 @@ pub fn run() -> Result<(), failure::Error> {
                     } => {
                         config.build.merge(build);
                         run_build(&root, &config.build)?;
-                        run_copy(&root, &destination, &branch, &include_files, prune)?;
+                        run_copy(&root, &config.build.path, &destination, &branch, &include_files, prune)?;
                     }
                     ModeConfiguration::Upload {
                         authentication,
@@ -69,6 +69,7 @@ pub fn run() -> Result<(), failure::Error> {
                         run_build(&root, &config.build)?;
                         run_upload(
                             &root,
+                            &config.build.path,
                             &authentication,
                             &branch,
                             &include_files,
@@ -96,13 +97,14 @@ fn run_build(root: &Path, config: &BuildConfiguration) -> Result<(), failure::Er
 
 fn run_copy(
     root: &Path,
+    build_path: &Option<PathBuf>,
     destination: &PathBuf,
     branch: &String,
     include_files: &Vec<PathBuf>,
     prune: bool,
 ) -> Result<(), failure::Error> {
     info!("copying...");
-    copy::copy(root, destination, branch, include_files, prune)?;
+    copy::copy(root, build_path, destination, branch, include_files, prune)?;
     info!("copied.");
 
     Ok(())
@@ -110,6 +112,7 @@ fn run_copy(
 
 fn run_upload(
     root: &Path,
+    build_path: &Option<PathBuf>,
     authentication: &Authentication,
     branch: &String,
     include_files: &Vec<PathBuf>,
@@ -121,6 +124,7 @@ fn run_upload(
     info!("uploading...");
     upload::upload(
         root,
+        build_path,
         authentication,
         branch,
         include_files,

@@ -14,6 +14,7 @@ use crate::config::Authentication;
 
 pub fn upload(
     root: &Path,
+    build_path: &Option<PathBuf>,
     authentication: &Authentication,
     branch: &String,
     include_files: &Vec<PathBuf>,
@@ -25,7 +26,11 @@ pub fn upload(
     let mut files = HashMap::new();
 
     for target in include_files {
-        let target_dir = root.join(target);
+        let target_dir = build_path
+            .as_ref()
+            .map(|p| root.join(p))
+            .unwrap_or_else(|| root.into())
+            .join(target);
 
         for entry in fs::read_dir(target_dir)? {
             let entry = entry?;
