@@ -1,58 +1,78 @@
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
-use failure::{bail, ensure, format_err};
+use failure::{bail, ensure};
 use log::*;
 use serde::Serialize;
 
-use crate::config::{Authentication, Configuration};
+use crate::config::Authentication;
 
-pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
-    let upload_config = config.upload.as_ref().ok_or_else(|| {
-        format_err!("must include [upload] section in configuration to deploy using upload")
-    })?;
-
-    let target_dir = root.join("target");
-
+pub fn upload(
+    root: &Path,
+    build_path: &Option<PathBuf>,
+    authentication: &Authentication,
+    branch: &String,
+    include_files: &Vec<PathBuf>,
+    hostname: &String,
+    ssl: bool,
+    port: u16,
+    prefix: &Option<String>,
+) -> Result<(), failure::Error> {
     let mut files = HashMap::new();
-    for entry in fs::read_dir(target_dir)? {
-        let entry = entry?;
-        let path = entry.path();
 
-        if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
-            let contents = if extension == "js" {
-                let data = {
-                    let mut buf = String::new();
-                    fs::File::open(&path)?.read_to_string(&mut buf)?;
-                    buf
-                };
-                serde_json::Value::String(data)
-            } else if extension == "wasm" {
-                let data = {
-                    let mut buf = Vec::new();
-                    fs::File::open(&path)?.read_to_end(&mut buf)?;
-                    buf
-                };
-                let data = base64::encode(&data);
-                serde_json::json!({ "binary": data })
-            } else {
-                continue;
-            };
+    for target in include_files {
+        let target_dir = build_path
+            .as_ref()
+            .map(|p| root.join(p))
+            .unwrap_or_else(|| root.into())
+            .join(target);
 
-            files.insert(name.to_string_lossy().into_owned(), contents);
+        for entry in fs::read_dir(target_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
+                let contents = if extension == "js" {
+                    let data = {
+                        let mut buf = String::new();
+                        fs::File::open(&path)?.read_to_string(&mut buf)?;
+                        buf
+                    };
+                    serde_json::Value::String(data)
+                } else if extension == "wasm" {
+                    let data = {
+                        let mut buf = Vec::new();
+                        fs::File::open(&path)?.read_to_end(&mut buf)?;
+                        buf
+                    };
+                    let data = base64::encode(&data);
+                    serde_json::json!({ "binary": data })
+                } else {
+                    continue;
+                };
+
+                files.insert(name.to_string_lossy().into_owned(), contents);
+            }
         }
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()?;
 
     let url = format!(
         "{}://{}:{}/{}",
-        if upload_config.ssl { "https" } else { "http" },
-        upload_config.hostname,
-        upload_config.port,
-        if upload_config.ptr {
-            "ptr/api/user/code"
-        } else {
-            "api/user/code"
+        if ssl { "https" } else { "http" },
+        hostname,
+        port,
+        match prefix {
+            Some(prefix) => format!("{}/api/user/code", prefix),
+            None => "api/user/code".to_string(),
         }
     );
 
@@ -62,10 +82,10 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), &upload_config.authentication)
+    let mut response = authenticate(client.post(&url), authentication)
         .json(&RequestData {
             modules: files,
-            branch: upload_config.branch.clone(),
+            branch: branch.clone(),
         })
         .send()?;
 
@@ -86,7 +106,7 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
     if let Some(s) = response_json.get("error") {
         bail!(
             "error sending to branch '{}' of '{}': {}",
-            upload_config.branch,
+            branch,
             response.url(),
             s
         );
@@ -100,7 +120,7 @@ fn authenticate(
     authentication: &Authentication,
 ) -> reqwest::RequestBuilder {
     match authentication {
-        Authentication::Token(ref token) => request.header("X-Token", token.as_str()),
+        Authentication::Token { ref auth_token } => request.header("X-Token", auth_token.as_str()),
         Authentication::Basic {
             ref username,
             ref password,
