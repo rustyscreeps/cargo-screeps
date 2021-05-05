@@ -47,7 +47,13 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 
     debug!("finished executing wasm-pack build");
 
-    let target_dir = root.join("pkg");
+    let target_dir = build_config
+        .path
+        .as_ref()
+        .map(|p| root.join(p))
+        .unwrap_or_else(|| root.into())
+        .join("pkg");
+
     let mut generated_js = None;
     for r in fs::read_dir(&target_dir)? {
         let entry = r?;
