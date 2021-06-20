@@ -12,8 +12,6 @@ use serde::Serialize;
 
 use crate::config::Authentication;
 
-use std::time::Duration;
-
 pub fn upload(
     root: &Path,
     build_path: &Option<PathBuf>,
@@ -24,6 +22,7 @@ pub fn upload(
     ssl: bool,
     port: u16,
     prefix: &Option<String>,
+    http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     let mut files = HashMap::new();
 
@@ -64,7 +63,7 @@ pub fn upload(
     }
 
     let client_builder = reqwest::Client::builder();
-    let client = match upload_config.http_timeout {
+    let client = match http_timeout {
         None =>         client_builder.build()?,
         Some(value) =>  client_builder.timeout(
                             Duration::from_secs(value as u64)

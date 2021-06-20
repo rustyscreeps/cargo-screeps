@@ -64,6 +64,7 @@ pub fn run() -> Result<(), failure::Error> {
                         ssl,
                         port,
                         prefix,
+                        http_timeout,
                     } => {
                         config.build.merge(build);
                         run_build(&root, &config.build)?;
@@ -77,6 +78,7 @@ pub fn run() -> Result<(), failure::Error> {
                             ssl,
                             port,
                             &prefix,
+                            http_timeout,
                         )?;
                     }
                 },
@@ -120,6 +122,7 @@ fn run_upload(
     ssl: bool,
     port: u16,
     prefix: &Option<String>,
+    http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     info!("uploading...");
     upload::upload(
@@ -132,6 +135,7 @@ fn run_upload(
         ssl,
         port,
         prefix,
+        http_timeout,
     )?;
     info!("uploaded.");
 
