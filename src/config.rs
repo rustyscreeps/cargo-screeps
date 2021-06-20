@@ -17,15 +17,26 @@ pub enum BuildProfile {
     Release,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BuildMode {
+    World,
+    Arena,
+}
+
 #[derive(Clone, Debug, Deserialize, Default, Merge)]
 pub struct BuildConfiguration {
     #[serde(default)]
     pub build_profile: Option<BuildProfile>,
     #[serde(default)]
+    pub build_mode: Option<BuildMode>,
+    #[serde(default)]
     pub out_name: Option<String>,
     #[merge(strategy = merge::vec::overwrite_empty)]
     #[serde(default)]
     pub extra_options: Vec<String>,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

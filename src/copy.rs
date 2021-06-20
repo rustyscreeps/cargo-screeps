@@ -8,6 +8,7 @@ use log::*;
 
 pub fn copy<P: AsRef<Path>>(
     root: P,
+    build_path: &Option<PathBuf>,
     destination: &PathBuf,
     branch: &String,
     include_files: &Vec<PathBuf>,
@@ -24,14 +25,18 @@ pub fn copy<P: AsRef<Path>>(
     let mut deployed: HashSet<PathBuf> = HashSet::new();
 
     for target in include_files {
-        let target_dir = root.join(target);
+        let target_dir = build_path
+            .as_ref()
+            .map(|p| root.join(p))
+            .unwrap_or_else(|| root.into())
+            .join(target);
 
         for entry in fs::read_dir(target_dir)? {
             let entry = entry?;
             let path = entry.path();
 
             if let (Some(name), Some(extension)) = (path.file_name(), path.extension()) {
-                if extension == "wasm" || extension == "js" {
+                if extension == "wasm" || extension == "js" || extension == "mjs" {
                     let output_path = output_dir.join(name);
                     fs::copy(&path, &output_path)?;
                     deployed.insert(output_path);
