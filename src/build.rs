@@ -95,7 +95,7 @@ fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String
     // also remove the filesystem load of the wasm bytes and replace with a simple require.
     let bindgen_output_regex = regex::Regex::new(&format!(
         "(?s)(.+)\n[^\n]+{}(.+){}[^\']+{}.+",
-        regex::escape(" = require(String.raw`util`);"),
+        regex::escape(" = require(`util`);"),
         regex::escape("const path = require('path').join(__dirname, '"),
         regex::escape(".wasm');\nconst bytes = require('fs').readFileSync(path);"),
     ))
