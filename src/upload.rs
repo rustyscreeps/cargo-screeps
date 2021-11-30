@@ -62,7 +62,7 @@ pub fn upload(
         }
     }
 
-    let client_builder = reqwest::Client::builder();
+    let client_builder = reqwest::blocking::Client::builder();
     let client = match http_timeout {
         None =>         client_builder.build()?,
         Some(value) =>  client_builder.timeout(
@@ -87,24 +87,25 @@ pub fn upload(
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), authentication)
+    let response = authenticate(client.post(&url), authentication)
         .json(&RequestData {
             modules: files,
             branch: branch.clone(),
         })
         .send()?;
 
+    let response_status = response.status();
+    let response_url = response.url().clone();
     let response_text = response.text()?;
 
     ensure!(
-        response.status().is_success(),
+        response_status.is_success(),
         "uploading to '{}' failed: {}",
-        response.url(),
+        response_url,
         response_text,
     );
 
     debug!("upload finished: {}", response_text);
-    debug!("response: {:#?}", response);
 
     let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
 
@@ -112,7 +113,7 @@ pub fn upload(
         bail!(
             "error sending to branch '{}' of '{}': {}",
             branch,
-            response.url(),
+            response_url,
             s
         );
     }
@@ -121,9 +122,9 @@ pub fn upload(
 }
 
 fn authenticate(
-    request: reqwest::RequestBuilder,
+    request: reqwest::blocking::RequestBuilder,
     authentication: &Authentication,
-) -> reqwest::RequestBuilder {
+) -> reqwest::blocking::RequestBuilder {
     match authentication {
         Authentication::Token { ref auth_token } => request.header("X-Token", auth_token.as_str()),
         Authentication::Basic {
