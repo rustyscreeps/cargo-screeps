@@ -106,7 +106,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     let generated_js_rename_to = generated_js.with_extension("jsorig");
     fs::rename(&generated_js, &generated_js_rename_to)?;
 
-    let processed_js = process_js(&generated_js, &generated_wasm_rename_to, &generated_js_contents)?;
+    let processed_js = process_js(&generated_js_contents)?;
 
     debug!("writing processed js to {}", generated_js.display());
 
@@ -117,28 +117,8 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     Ok(())
 }
 
-fn process_js(file_name: &Path, wasm_file_name: &Path, input: &str) -> Result<String, failure::Error> {
-    // add polyfills for TextEncoder/TextDecoder as well as base64 conversion,
-    // replace loader functions, and embed the base64-encoded wasm module in the mjs file
-    let bindgen_output_regex = regex::Regex::new(&format!(
-        "(?s)(.+)\n{}\n.+{}\n.+({}.+){}.+{}.*",
-        regex::escape("async function load(module, imports) {"),
-        regex::escape("async function init(input) {"),
-        regex::escape("const imports = {};"),
-        regex::escape("if (typeof input === 'string'"),
-        regex::escape("export default init;"),
-    ))
-    .expect("expected pre-set regex to succeed");
-
-    let captures = bindgen_output_regex.captures(input).ok_or_else(|| {
-        format_err!(
-            "'wasm-pack' generated unexpected JS output! This means it's updated without \
-             'cargo screeps' also having updated. Please report this issue to \
-             https://github.com/rustyscreeps/cargo-screeps/issues and include \
-             the first ~30 lines of {}",
-            file_name.display(),
-        )
-    })?;
+fn process_js(input: &str) -> Result<String, failure::Error> {
+    // add polyfills for TextEncoder/TextDecoder
 
     // CC-0 TextEncoder/TextDecoder polyfill from https://github.com/anonyco/FastestSmallestTextEncoderDecoder
     Ok(format!(
@@ -148,24 +128,8 @@ g=q?new t(g):g||[]}}for(var f=l="",b=0,c=g.length|0,u=c-32|0,e,d,h=0,p=0,m,k=0,n
 0,f=new t((l<<1)+8|0),b,c=0,u=!q;for(b=0;b<l;b=b+1|0,c=c+1|0){{var e=g.charCodeAt(b)|0;if(127>=e)f[c]=e;else{{if(2047>=e)f[c]=192|e>>6;else{{a:{{if(55296<=e)if(56319>=e){{var d=g.charCodeAt(b=b+1|0)|0;if(56320<=d&&57343>=d){{e=(e<<10)+d-56613888|0;if(65535<e){{f[c]=240|e>>18;f[c=c+1|0]=128|e>>12&63;f[c=c+1|0]=128|e>>6&63;f[c=c+1|0]=128|e&63;continue}}break a}}e=65533}}else 57343>=e&&(e=65533);!u&&b<<1<c&&b<<1<(c-7|0)&&(u=!0,d=new t(3*l),d.set(f),f=d)}}f[c]=224|e>>12;f[c=c+1|0]=128|e>>6&63}}f[c=c+1|0]=128|e&63}}}}return q?
 f.subarray(0,c):f.slice(0,c)}};E||(r.TextDecoder=x,r.TextEncoder=y)}})(""+void 0==typeof global?""+void 0==typeof self?this:self:global);
 
-import wasm_bytes from "./{}";
-
 {}
-
-async function load(buffer, imports) {{
-    let wasm_module = new WebAssembly.Module(buffer);
-    return new WebAssembly.Instance(wasm_module, imports);
-}}
-
-async function init() {{
-    {}
-
-    const instance = await load(wasm_bytes, imports);
-    wasm = instance.exports;
-}}
-
-await init();
 "#,
-        wasm_file_name.file_name().and_then(OsStr::to_str).unwrap_or(""), &captures[1], &captures[2]
+        input
     ))
 }
