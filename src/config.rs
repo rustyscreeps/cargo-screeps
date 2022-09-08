@@ -50,6 +50,7 @@ struct FileUploadConfiguration {
     port: Option<i32>,
     #[serde(default = "default_ptr")]
     ptr: bool,
+    http_timeout: Option<u32>,
 }
 
 fn default_hostname() -> String {
@@ -68,6 +69,7 @@ pub struct UploadConfiguration {
     pub ssl: bool,
     pub port: i32,
     pub ptr: bool,
+    pub http_timeout: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -123,6 +125,7 @@ impl UploadConfiguration {
             ssl,
             port,
             ptr,
+            http_timeout,
         } = config;
 
         let ssl = ssl.unwrap_or_else(|| hostname == "screeps.com");
@@ -146,6 +149,7 @@ impl UploadConfiguration {
             ssl,
             port,
             ptr,
+            http_timeout,
         })
     }
 }

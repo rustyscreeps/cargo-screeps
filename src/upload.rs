@@ -6,6 +6,8 @@ use serde::Serialize;
 
 use crate::config::{Authentication, Configuration};
 
+use std::time::Duration;
+
 pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
     let upload_config = config.upload.as_ref().ok_or_else(|| {
         format_err!("must include [upload] section in configuration to deploy using upload")
@@ -42,7 +44,13 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
         }
     }
 
-    let client = reqwest::Client::new();
+    let client_builder = reqwest::Client::builder();
+    let client = match upload_config.http_timeout {
+        None =>         client_builder.build()?,
+        Some(value) =>  client_builder.timeout(
+                            Duration::from_secs(value as u64)
+                        ).build()?,
+    };
 
     let url = format!(
         "{}://{}:{}/{}",
