@@ -71,6 +71,7 @@ pub fn run() -> Result<(), failure::Error> {
                         ssl,
                         port,
                         prefix,
+                        http_timeout,
                     } => {
                         if build.is_some() {
                             override_build_options(&mut config.build, build.unwrap());
@@ -84,6 +85,7 @@ pub fn run() -> Result<(), failure::Error> {
                             ssl,
                             port,
                             &prefix,
+                            http_timeout,
                         )?;
                     }
                 },
@@ -165,9 +167,10 @@ fn run_upload(
     ssl: bool,
     port: u16,
     prefix: &Option<String>,
+    http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     info!("uploading...");
-    upload::upload(root, authentication, branch, hostname, ssl, port, prefix)?;
+    upload::upload(root, authentication, branch, hostname, ssl, port, prefix, http_timeout)?;
     info!("uploaded.");
 
     Ok(())

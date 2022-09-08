@@ -14,6 +14,7 @@ pub fn upload(
     ssl: bool,
     port: u16,
     prefix: &Option<String>,
+    http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     let target_dir = root.join("target");
 
@@ -46,9 +47,13 @@ pub fn upload(
         }
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(300))
-        .build()?;
+    let client_builder = reqwest::Client::builder();
+    let client = match http_timeout {
+        None =>         client_builder.build()?,
+        Some(value) =>  client_builder.timeout(
+                            Duration::from_secs(value as u64)
+                        ).build()?,
+    };
 
     let url = format!(
         "{}://{}:{}/{}",
