@@ -61,6 +61,8 @@ pub enum ModeConfiguration {
         port: u16,
         #[serde(default)]
         prefix: Option<String>,
+        #[serde(default)]
+        http_timeout: Option<u32>,
     },
 }
 
