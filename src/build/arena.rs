@@ -16,7 +16,8 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 
     debug!("running wasm-pack build");
 
-    // get the out_name from the build config, or use bindgen's default of the working directory name
+    // get the out_name from the build config, or use bindgen's default of the
+    // working directory name
     let out_name = match &build_config.out_name {
         Some(v) => v.clone(),
         None => root.file_stem().unwrap().to_str().unwrap().to_string(),

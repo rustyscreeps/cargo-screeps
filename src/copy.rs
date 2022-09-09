@@ -36,7 +36,11 @@ pub fn copy<P: AsRef<Path>>(
             let path = entry.path();
 
             if let (Some(name), Some(extension)) = (path.file_name(), path.extension()) {
-                if extension == "wasm" || extension == "bin" || extension == "js" || extension == "mjs" {
+                if extension == "wasm"
+                    || extension == "bin"
+                    || extension == "js"
+                    || extension == "mjs"
+                {
                     let output_path = output_dir.join(name);
                     fs::copy(&path, &output_path)?;
                     deployed.insert(output_path);

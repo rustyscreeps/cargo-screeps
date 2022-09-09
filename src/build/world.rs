@@ -16,7 +16,8 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 
     debug!("running wasm-pack build");
 
-    // get the out_name from the build config, or use bindgen's default of the working directory name
+    // get the out_name from the build config, or use bindgen's default of the
+    // working directory name
     let out_name = match &build_config.out_name {
         Some(v) => v.clone(),
         None => root.file_stem().unwrap().to_str().unwrap().to_string(),
@@ -92,7 +93,8 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String, failure::Error> {
     // first, replace the TextEncoder/TextDecoder load step with a polyfill,
     // as screeps' js environment doesn't give us access to `util`.
-    // also remove the filesystem load of the wasm bytes and replace with a simple require.
+    // also remove the filesystem load of the wasm bytes and replace with a simple
+    // require.
     let bindgen_output_regex = regex::Regex::new(&format!(
         "(?s)(.+)\n[^\n]+{}(.+){}[^\']+{}.+",
         regex::escape(" = require(`util`);"),
