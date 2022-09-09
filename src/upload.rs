@@ -49,10 +49,10 @@ pub fn upload(
 
     let client_builder = reqwest::Client::builder();
     let client = match http_timeout {
-        None =>         client_builder.build()?,
-        Some(value) =>  client_builder.timeout(
-                            Duration::from_secs(value as u64)
-                        ).build()?,
+        None => client_builder.build()?,
+        Some(value) => client_builder
+            .timeout(Duration::from_secs(value as u64))
+            .build()?,
     };
 
     let url = format!(

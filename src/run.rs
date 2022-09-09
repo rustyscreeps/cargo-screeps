@@ -170,7 +170,16 @@ fn run_upload(
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     info!("uploading...");
-    upload::upload(root, authentication, branch, hostname, ssl, port, prefix, http_timeout)?;
+    upload::upload(
+        root,
+        authentication,
+        branch,
+        hostname,
+        ssl,
+        port,
+        prefix,
+        http_timeout,
+    )?;
     info!("uploaded.");
 
     Ok(())
