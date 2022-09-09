@@ -53,7 +53,14 @@ pub fn run() -> Result<(), failure::Error> {
                     } => {
                         config.build.merge(build);
                         run_build(&root, &config.build)?;
-                        run_copy(&root, &config.build.path, &destination, &branch, &include_files, prune)?;
+                        run_copy(
+                            &root,
+                            &config.build.path,
+                            &destination,
+                            &branch,
+                            &include_files,
+                            prune,
+                        )?;
                     }
                     ModeConfiguration::Upload {
                         authentication,
