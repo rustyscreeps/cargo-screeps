@@ -2,6 +2,14 @@ Unreleased
 ==================
 
 - Added configuration for upload HTTP request timeout `http_timeout` (#26)
+- (Breaking) Remove `ptr` option from configuration, replaced with `prefix` which can be set to
+  a desired API URL prefix - `prefix = "ptr"` replaces the functionality of `ptr = true`
+- (Breaking) The default `port` is now 443 and `ssl` now defaults to true (previous default was
+  HTTPS for screeps.com and HTTP for other hosts)
+- `branch` option is no longer required, `"default"` is the default if none is configured
+- Options from the `[build]` section can be overridden for any individual mode in `[modename.build]`
+- `[build]` options now support specifying `features`, a list of crate features to be passed to
+  cargo-web
 
 0.3.3 (2019-07-20)
 ==================

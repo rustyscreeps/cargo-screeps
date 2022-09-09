@@ -1,18 +1,21 @@
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
 
-use failure::{bail, ensure, format_err};
+use failure::{bail, ensure};
 use log::*;
 use serde::Serialize;
 
-use crate::config::{Authentication, Configuration};
+use crate::config::Authentication;
 
-use std::time::Duration;
-
-pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
-    let upload_config = config.upload.as_ref().ok_or_else(|| {
-        format_err!("must include [upload] section in configuration to deploy using upload")
-    })?;
-
+pub fn upload(
+    root: &Path,
+    authentication: &Authentication,
+    branch: &String,
+    hostname: &String,
+    ssl: bool,
+    port: u16,
+    prefix: &Option<String>,
+    http_timeout: Option<u32>,
+) -> Result<(), failure::Error> {
     let target_dir = root.join("target");
 
     let mut files = HashMap::new();
@@ -45,22 +48,21 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
     }
 
     let client_builder = reqwest::Client::builder();
-    let client = match upload_config.http_timeout {
-        None =>         client_builder.build()?,
-        Some(value) =>  client_builder.timeout(
-                            Duration::from_secs(value as u64)
-                        ).build()?,
+    let client = match http_timeout {
+        None => client_builder.build()?,
+        Some(value) => client_builder
+            .timeout(Duration::from_secs(value as u64))
+            .build()?,
     };
 
     let url = format!(
         "{}://{}:{}/{}",
-        if upload_config.ssl { "https" } else { "http" },
-        upload_config.hostname,
-        upload_config.port,
-        if upload_config.ptr {
-            "ptr/api/user/code"
-        } else {
-            "api/user/code"
+        if ssl { "https" } else { "http" },
+        hostname,
+        port,
+        match prefix {
+            Some(prefix) => format!("{}/api/user/code", prefix),
+            None => "api/user/code".to_string(),
         }
     );
 
@@ -70,10 +72,10 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), &upload_config.authentication)
+    let mut response = authenticate(client.post(&url), authentication)
         .json(&RequestData {
             modules: files,
-            branch: upload_config.branch.clone(),
+            branch: branch.clone(),
         })
         .send()?;
 
@@ -94,7 +96,7 @@ pub fn upload(root: &Path, config: &Configuration) -> Result<(), failure::Error>
     if let Some(s) = response_json.get("error") {
         bail!(
             "error sending to branch '{}' of '{}': {}",
-            upload_config.branch,
+            branch,
             response.url(),
             s
         );
@@ -108,7 +110,7 @@ fn authenticate(
     authentication: &Authentication,
 ) -> reqwest::RequestBuilder {
     match authentication {
-        Authentication::Token(ref token) => request.header("X-Token", token.as_str()),
+        Authentication::Token { ref auth_token } => request.header("X-Token", auth_token.as_str()),
         Authentication::Basic {
             ref username,
             ref password,

@@ -5,7 +5,7 @@ use failure::{bail, ensure, format_err};
 use log::*;
 use structopt::StructOpt;
 
-use crate::config::{BuildConfiguration, Configuration};
+use crate::config::BuildConfiguration;
 
 pub fn check(root: &Path) -> Result<(), failure::Error> {
     debug!("running check");
@@ -28,18 +28,26 @@ pub fn check(root: &Path) -> Result<(), failure::Error> {
     Ok(())
 }
 
-pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> {
+pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failure::Error> {
     debug!("building");
 
     debug!("changing directory to {}", root.display());
 
     env::set_current_dir(&root)?;
 
-    debug!("running cargo-web build --target=wasm32-unknown-unknown --release");
+    let mut args = vec![
+        "--target=wasm32-unknown-unknown".to_owned(),
+        "--release".to_owned(),
+    ];
+
+    if build_config.features.len() > 0 {
+        args.push(format!("--features={}", build_config.features.join(" ")));
+    }
+
+    debug!("running cargo-web build {}", args.join(" "));
 
     let res = cargo_web::run(CargoWebOpts::Build(
-        BuildOpts::from_iter_safe(&["--target=wasm32-unknown-unknown", "--release"])
-            .expect("expected hardcoded cargo-web args to be valid"),
+        BuildOpts::from_iter_safe(&args).expect("expected cargo-web args to be valid"),
     ));
     if let Err(e) = res {
         bail!("cargo-web build failed: {}", e);
@@ -90,15 +98,15 @@ pub fn build(root: &Path, config: &Configuration) -> Result<(), failure::Error> 
 
     fs::create_dir_all(&out_dir)?;
 
-    fs::copy(wasm_file, out_dir.join(&config.build.output_wasm_file))?;
+    fs::copy(wasm_file, out_dir.join(&build_config.output_wasm_file))?;
 
     debug!("processing js file");
 
     let generated_js_contents = fs::read_to_string(&generated_js)?;
 
-    let processed_js = process_js(&generated_js, &generated_js_contents, &root, &config.build)?;
+    let processed_js = process_js(&generated_js, &generated_js_contents, &root, &build_config)?;
 
-    let out_file = out_dir.join(&config.build.output_js_file);
+    let out_file = out_dir.join(&build_config.output_js_file);
 
     debug!("writing to {}", out_file.display());
 
