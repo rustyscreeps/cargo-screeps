@@ -12,7 +12,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
 
     debug!("changing directory to {}", root.display());
 
-    env::set_current_dir(&root)?;
+    env::set_current_dir(root)?;
 
     debug!("running wasm-pack build");
 
@@ -36,7 +36,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         path: build_config.path.clone(),
         target: Target::Web,
         out_dir: "pkg".to_string(),
-        out_name: Some(out_name.clone()),
+        out_name: Some(out_name),
         extra_options: build_config.extra_options.clone(),
         dev,
         release,
@@ -60,16 +60,13 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         let entry = r?;
         let file_name = entry.file_name();
         let file_name = Path::new(&file_name);
-        match file_name.extension().and_then(OsStr::to_str) {
-            Some("js") => {
-                ensure!(
-                    generated_js.is_none(),
-                    "error: multiple js files found in {}",
-                    target_dir.display()
-                );
-                generated_js = Some(entry.path());
-            }
-            _ => {}
+        if let Some("js") = file_name.extension().and_then(OsStr::to_str) {
+            ensure!(
+                generated_js.is_none(),
+                "error: multiple js files found in {}",
+                target_dir.display()
+            );
+            generated_js = Some(entry.path());
         }
     }
     let generated_js = generated_js
@@ -80,16 +77,13 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         let entry = r?;
         let file_name = entry.file_name();
         let file_name = Path::new(&file_name);
-        match file_name.extension().and_then(OsStr::to_str) {
-            Some("wasm") => {
-                ensure!(
-                    generated_wasm.is_none(),
-                    "error: multiple wasm files found in {}",
-                    target_dir.display()
-                );
-                generated_wasm = Some(entry.path());
-            }
-            _ => {}
+        if let Some("wasm") = file_name.extension().and_then(OsStr::to_str) {
+            ensure!(
+                generated_wasm.is_none(),
+                "error: multiple wasm files found in {}",
+                target_dir.display()
+            );
+            generated_wasm = Some(entry.path());
         }
     }
     let generated_wasm = generated_wasm
