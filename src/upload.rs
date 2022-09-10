@@ -18,10 +18,7 @@ pub fn upload(
     authentication: &Authentication,
     branch: &String,
     include_files: &Vec<PathBuf>,
-    hostname: &String,
-    ssl: bool,
-    port: u16,
-    prefix: &Option<String>,
+    url: &String,
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     let mut files = HashMap::new();
@@ -70,24 +67,13 @@ pub fn upload(
             .build()?,
     };
 
-    let url = format!(
-        "{}://{}:{}/{}",
-        if ssl { "https" } else { "http" },
-        hostname,
-        port,
-        match prefix {
-            Some(prefix) => format!("{}/api/user/code", prefix),
-            None => "api/user/code".to_string(),
-        }
-    );
-
     #[derive(Serialize)]
     struct RequestData {
         modules: HashMap<String, serde_json::Value>,
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), authentication)
+    let mut response = authenticate(client.post(url), authentication)
         .json(&RequestData {
             modules: files,
             branch: branch.clone(),

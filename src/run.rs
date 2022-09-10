@@ -16,7 +16,7 @@ pub fn run() -> Result<(), failure::Error> {
     let root = orientation::find_project_root(&cli_config)?;
     let config_path = cli_config
         .config_path
-        .unwrap_or_else(|| root.join("screeps.toml").to_owned());
+        .unwrap_or_else(|| root.join("screeps.toml"));
 
     let mut config = config::Configuration::read(&config_path)?;
 
@@ -36,60 +36,66 @@ pub fn run() -> Result<(), failure::Error> {
                     })?
                 }
             };
-
-            match config.modes.remove(&mode).ok_or_else(|| {
+            let target_config = config.modes.remove(&mode).ok_or_else(|| {
                 format_err!(
                     "couldn't find mode {}, must be defined in screeps.toml",
                     mode
                 )
-            })? {
-                target_config => match target_config {
-                    ModeConfiguration::Copy {
-                        destination,
-                        branch,
-                        build,
-                        include_files,
+            })?;
+            match target_config {
+                ModeConfiguration::Copy {
+                    destination,
+                    branch,
+                    build,
+                    include_files,
+                    prune,
+                } => {
+                    config.build.merge(build);
+                    run_build(&root, &config.build)?;
+                    run_copy(
+                        &root,
+                        &config.build.path,
+                        &destination,
+                        &branch,
+                        &include_files,
                         prune,
-                    } => {
-                        config.build.merge(build);
-                        run_build(&root, &config.build)?;
-                        run_copy(
-                            &root,
-                            &config.build.path,
-                            &destination,
-                            &branch,
-                            &include_files,
-                            prune,
-                        )?;
-                    }
-                    ModeConfiguration::Upload {
-                        authentication,
-                        branch,
-                        build,
-                        include_files,
+                    )?;
+                }
+                ModeConfiguration::Upload {
+                    authentication,
+                    branch,
+                    build,
+                    include_files,
+                    hostname,
+                    ssl,
+                    port,
+                    prefix,
+                    http_timeout,
+                } => {
+                    let url = format!(
+                        "{}://{}:{}/{}",
+                        if ssl { "https" } else { "http" },
                         hostname,
-                        ssl,
                         port,
-                        prefix,
+                        match prefix {
+                            Some(prefix) => format!("{}/api/user/code", prefix),
+                            None => "api/user/code".to_string(),
+                        }
+                    );
+
+                    config.build.merge(build);
+                    run_build(&root, &config.build)?;
+                    run_upload(
+                        &root,
+                        &config.build.path,
+                        &authentication,
+                        &branch,
+                        &include_files,
+                        &url,
                         http_timeout,
-                    } => {
-                        config.build.merge(build);
-                        run_build(&root, &config.build)?;
-                        run_upload(
-                            &root,
-                            &config.build.path,
-                            &authentication,
-                            &branch,
-                            &include_files,
-                            &hostname,
-                            ssl,
-                            port,
-                            &prefix,
-                            http_timeout,
-                        )?;
-                    }
-                },
-            }
+                    )?;
+                }
+            };
         }
     }
 
@@ -125,10 +131,7 @@ fn run_upload(
     authentication: &Authentication,
     branch: &String,
     include_files: &Vec<PathBuf>,
-    hostname: &String,
-    ssl: bool,
-    port: u16,
-    prefix: &Option<String>,
+    url: &String,
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     info!("uploading...");
@@ -138,10 +141,7 @@ fn run_upload(
         authentication,
         branch,
         include_files,
-        hostname,
-        ssl,
-        port,
-        prefix,
+        url,
         http_timeout,
     )?;
     info!("uploaded.");

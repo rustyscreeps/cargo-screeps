@@ -18,7 +18,7 @@ pub fn copy<P: AsRef<Path>>(
 
     // join root here so relative directories are correct even if 'cargo screeps' is
     // run in sub-directory.
-    let output_dir = root.join(&destination).join(&branch);
+    let output_dir = root.join(destination).join(branch);
 
     fs::create_dir_all(&output_dir)?;
 
