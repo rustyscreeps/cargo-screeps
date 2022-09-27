@@ -1,6 +1,18 @@
 Unreleased
 ==================
 
+- (Breaking) Replaced cargo-web functionality with wasm-pack; use 0.4.x release for stdweb-based
+  crates!
+- (Breaking) Remove `output_js_file` and `output_wasm_file` build options which configured the
+  related cargo-web features; add `build_profile` and `out_name` build options which configure
+  related wasm-pack features.
+- (Breaking) Remove `features` build option, replacing with the `extra_options` build option
+  which can pass flags like `--features=feature-name` or any other needed command line flags to
+  wasm-pack.
+- (Breaking) Remove `initialization_header_file` deployment configuration option, replacing with
+  `include_files` option, which specifies which directories inside your working directory to
+  include files from for deployment.
+- (Breaking) Remove `check` command, as it's not available under wasm-pack - use `cargo check`.
 
 0.4.0 (2022-09-08)
 ==================
