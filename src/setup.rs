@@ -12,7 +12,6 @@ pub struct CliConfig {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Command {
-    Check,
     Build,
     Deploy,
 }
@@ -44,10 +43,6 @@ fn app() -> clap::App<'static, 'static> {
                 .subcommand(
                     clap::SubCommand::with_name("build")
                         .about("build files, put in target/ in project root"),
-                )
-                .subcommand(
-                    clap::SubCommand::with_name("check")
-                        .about("runs 'cargo check' with appropriate target"),
                 )
                 .subcommand(
                     clap::SubCommand::with_name("deploy")
@@ -95,7 +90,6 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
 
     let command = match args.subcommand_name() {
         Some("build") => Command::Build,
-        Some("check") => Command::Check,
         Some("deploy") => Command::Deploy,
         Some("copy") => {
             mode = Some("copy".to_owned());

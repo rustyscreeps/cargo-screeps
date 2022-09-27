@@ -2,10 +2,11 @@ use std::path::{Path, PathBuf};
 
 use failure::format_err;
 use log::*;
+use merge::Merge;
 
 use crate::{
     build,
-    config::{self, Authentication, BuildConfiguration, BuildOverrides, ModeConfiguration},
+    config::{self, Authentication, BuildConfiguration, ModeConfiguration},
     copy, orientation, setup, upload,
 };
 
@@ -15,7 +16,7 @@ pub fn run() -> Result<(), failure::Error> {
     let root = orientation::find_project_root(&cli_config)?;
     let config_path = cli_config
         .config_path
-        .unwrap_or_else(|| root.join("screeps.toml").to_owned());
+        .unwrap_or_else(|| root.join("screeps.toml"));
 
     let mut config = config::Configuration::read(&config_path)?;
 
@@ -26,7 +27,6 @@ pub fn run() -> Result<(), failure::Error> {
 
     match cli_config.command {
         setup::Command::Build => run_build(&root, &config.build)?,
-        setup::Command::Check => run_check(&root)?,
         setup::Command::Deploy => {
             let mode = match cli_config.deploy_mode {
                 Some(v) => v,
@@ -36,89 +36,70 @@ pub fn run() -> Result<(), failure::Error> {
                     })?
                 }
             };
-
-            match config.modes.remove(&mode).ok_or_else(|| {
+            let target_config = config.modes.remove(&mode).ok_or_else(|| {
                 format_err!(
                     "couldn't find mode {}, must be defined in screeps.toml",
                     mode
                 )
-            })? {
-                target_config => match target_config {
-                    ModeConfiguration::Copy {
-                        destination,
-                        branch,
-                        build,
+            })?;
+            match target_config {
+                ModeConfiguration::Copy {
+                    destination,
+                    branch,
+                    build,
+                    include_files,
+                    prune,
+                } => {
+                    config.build.merge(build);
+                    run_build(&root, &config.build)?;
+                    run_copy(
+                        &root,
+                        &config.build.path,
+                        &destination,
+                        &branch,
+                        &include_files,
                         prune,
-                    } => {
-                        if build.is_some() {
-                            override_build_options(&mut config.build, build.unwrap());
-                        }
-                        run_build(&root, &config.build)?;
-                        run_copy(
-                            &root,
-                            &destination,
-                            &branch,
-                            prune,
-                            &config.build.output_js_file,
-                            &config.build.output_wasm_file,
-                        )?;
-                    }
-                    ModeConfiguration::Upload {
-                        authentication,
-                        branch,
-                        build,
+                    )?;
+                }
+                ModeConfiguration::Upload {
+                    authentication,
+                    branch,
+                    build,
+                    include_files,
+                    hostname,
+                    ssl,
+                    port,
+                    prefix,
+                    http_timeout,
+                } => {
+                    let url = format!(
+                        "{}://{}:{}/{}",
+                        if ssl { "https" } else { "http" },
                         hostname,
-                        ssl,
                         port,
-                        prefix,
-                        http_timeout,
-                    } => {
-                        if build.is_some() {
-                            override_build_options(&mut config.build, build.unwrap());
+                        match prefix {
+                            Some(prefix) => format!("{}/api/user/code", prefix),
+                            None => "api/user/code".to_string(),
                         }
-                        run_build(&root, &config.build)?;
-                        run_upload(
-                            &root,
-                            &authentication,
-                            &branch,
-                            &hostname,
-                            ssl,
-                            port,
-                            &prefix,
-                            http_timeout,
-                        )?;
-                    }
-                },
-            }
+                    );
+
+                    config.build.merge(build);
+                    run_build(&root, &config.build)?;
+                    run_upload(
+                        &root,
+                        &config.build.path,
+                        &authentication,
+                        &branch,
+                        &include_files,
+                        &url,
+                        http_timeout,
+                    )?;
+                }
+            };
         }
     }
 
     Ok(())
-}
-
-fn override_build_options(build_config: &mut BuildConfiguration, overrides: BuildOverrides) {
-    let BuildOverrides {
-        output_wasm_file,
-        output_js_file,
-        initialization_header_file,
-        features,
-    } = overrides;
-
-    if output_wasm_file.is_some() {
-        build_config.output_wasm_file = output_wasm_file.unwrap();
-    }
-
-    if output_js_file.is_some() {
-        build_config.output_js_file = output_js_file.unwrap();
-    }
-
-    if initialization_header_file.is_some() {
-        build_config.initialization_header_file = initialization_header_file;
-    }
-
-    if features.is_some() {
-        build_config.features = features.unwrap();
-    }
 }
 
 fn run_build(root: &Path, config: &BuildConfiguration) -> Result<(), failure::Error> {
@@ -129,31 +110,16 @@ fn run_build(root: &Path, config: &BuildConfiguration) -> Result<(), failure::Er
     Ok(())
 }
 
-fn run_check(root: &Path) -> Result<(), failure::Error> {
-    info!("checking...");
-    build::check(root)?;
-    info!("checked.");
-
-    Ok(())
-}
-
 fn run_copy(
     root: &Path,
+    build_path: &Option<PathBuf>,
     destination: &PathBuf,
     branch: &String,
+    include_files: &Vec<PathBuf>,
     prune: bool,
-    output_js_file: &PathBuf,
-    output_wasm_file: &PathBuf,
 ) -> Result<(), failure::Error> {
     info!("copying...");
-    copy::copy(
-        root,
-        destination,
-        branch,
-        prune,
-        output_js_file,
-        output_wasm_file,
-    )?;
+    copy::copy(root, build_path, destination, branch, include_files, prune)?;
     info!("copied.");
 
     Ok(())
@@ -161,23 +127,21 @@ fn run_copy(
 
 fn run_upload(
     root: &Path,
+    build_path: &Option<PathBuf>,
     authentication: &Authentication,
     branch: &String,
-    hostname: &String,
-    ssl: bool,
-    port: u16,
-    prefix: &Option<String>,
+    include_files: &Vec<PathBuf>,
+    url: &String,
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     info!("uploading...");
     upload::upload(
         root,
+        build_path,
         authentication,
         branch,
-        hostname,
-        ssl,
-        port,
-        prefix,
+        include_files,
+        url,
         http_timeout,
     )?;
     info!("uploaded.");

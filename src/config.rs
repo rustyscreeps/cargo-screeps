@@ -6,50 +6,28 @@ use std::{
 
 use failure::{ensure, ResultExt};
 use log::*;
+use merge::Merge;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BuildProfile {
+    Dev,
+    Profiling,
+    Release,
+}
+
+#[derive(Clone, Debug, Deserialize, Default, Merge)]
 pub struct BuildConfiguration {
-    #[serde(default = "BuildConfiguration::default_output_wasm_file")]
-    pub output_wasm_file: PathBuf,
-    #[serde(default = "BuildConfiguration::default_output_js_file")]
-    pub output_js_file: PathBuf,
     #[serde(default)]
-    pub initialization_header_file: Option<PathBuf>,
+    pub build_profile: Option<BuildProfile>,
     #[serde(default)]
-    pub features: Vec<String>,
-}
-
-impl Default for BuildConfiguration {
-    fn default() -> Self {
-        BuildConfiguration {
-            output_wasm_file: Self::default_output_wasm_file(),
-            output_js_file: Self::default_output_js_file(),
-            initialization_header_file: None,
-            features: vec![],
-        }
-    }
-}
-
-impl BuildConfiguration {
-    fn default_output_js_file() -> PathBuf {
-        "main.js".into()
-    }
-    fn default_output_wasm_file() -> PathBuf {
-        "compiled.wasm".into()
-    }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct BuildOverrides {
+    pub out_name: Option<String>,
+    #[merge(strategy = merge::vec::overwrite_empty)]
     #[serde(default)]
-    pub output_wasm_file: Option<PathBuf>,
+    pub extra_options: Vec<String>,
     #[serde(default)]
-    pub output_js_file: Option<PathBuf>,
-    #[serde(default)]
-    pub initialization_header_file: Option<PathBuf>,
-    #[serde(default)]
-    pub features: Option<Vec<String>>,
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -60,7 +38,9 @@ pub enum ModeConfiguration {
         #[serde(default = "default_branch")]
         branch: String,
         #[serde(default)]
-        build: Option<BuildOverrides>,
+        build: BuildConfiguration,
+        #[serde(default = "default_include_files")]
+        include_files: Vec<PathBuf>,
         #[serde(default = "default_prune")]
         prune: bool,
     },
@@ -70,9 +50,11 @@ pub enum ModeConfiguration {
         #[serde(default = "default_branch")]
         branch: String,
         #[serde(default)]
-        build: Option<BuildOverrides>,
+        build: BuildConfiguration,
         #[serde(default = "default_hostname")]
         hostname: String,
+        #[serde(default = "default_include_files")]
+        include_files: Vec<PathBuf>,
         #[serde(default = "default_ssl")]
         ssl: bool,
         #[serde(default = "default_port")]
@@ -82,6 +64,10 @@ pub enum ModeConfiguration {
         #[serde(default)]
         http_timeout: Option<u32>,
     },
+}
+
+fn default_include_files() -> Vec<PathBuf> {
+    vec!["pkg".into(), "javascript".into()]
 }
 
 fn default_branch() -> String {

@@ -1,14 +1,14 @@
 default_deploy_mode = "upload"
 
 # [build]
-# # use absolute file path to get out of "target/"
-# output_js_file = "main.js"
-# output_wasm_file = "compiled.wasm"
-# features = []
+# # allowed values are "release", "dev", and "profiling"
+# build_profile = "release"
+# out_name = "my_crate_name"
+# extra_options = []
 
-# Add any number of deployment modes below; when deploying, select which mode to use with
-# `cargo screeps deploy -m modename`
-# Each requires at least a destination (to deploy to a filesystem path), or authentication
+# Add any number of deployment modes below.
+# When deploying, select which mode to use with `cargo screeps deploy -m modename`
+# Each mode requires at least a destination (to deploy to a filesystem path), or authentication
 # credentials (to upload to a server via API), which can be either an auth_token or
 # username and password.
 
@@ -18,6 +18,8 @@ auth_token = "your auth token"
 # password = "your password"
 # # The following are the default values for the optional upload options, uncomment to change
 # branch = "default"
+# # include all wasm and js files from these directories (use absolute or relative paths)
+# include_files = ["pkg", "javascript"]
 # hostname = "screeps.com"
 # ssl = true
 # port = 443
@@ -29,10 +31,11 @@ auth_token = "your auth token"
 # destination = "your copy destination without the branch directory"
 # # The following are the default values for the optional copy options, uncomment to change
 # branch = "default"
+# include_files = ["pkg", "javascript"]
 # prune = false
 # # Override global build section items for any mode, if needed
 #   [copy.build]
-#   features = ["private-server"]
+#   extra_options = ["--features=private-server"]
 
 # [ptr]
 # auth_token = "your auth token"
@@ -42,4 +45,4 @@ auth_token = "your auth token"
 # auth_token = "your auth token"
 # prefix = "season"
 #   [season.build]
-#   features = ["my-crate-season-1-feature"]
+#   extra_options = ["--features=my-crate-season-1-feature"]

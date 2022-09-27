@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use failure::{bail, ensure};
 use log::*;
@@ -8,42 +14,48 @@ use crate::config::Authentication;
 
 pub fn upload(
     root: &Path,
+    build_path: &Option<PathBuf>,
     authentication: &Authentication,
     branch: &String,
-    hostname: &String,
-    ssl: bool,
-    port: u16,
-    prefix: &Option<String>,
+    include_files: &Vec<PathBuf>,
+    url: &String,
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
-    let target_dir = root.join("target");
-
     let mut files = HashMap::new();
-    for entry in fs::read_dir(target_dir)? {
-        let entry = entry?;
-        let path = entry.path();
 
-        if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
-            let contents = if extension == "js" {
-                let data = {
-                    let mut buf = String::new();
-                    fs::File::open(&path)?.read_to_string(&mut buf)?;
-                    buf
-                };
-                serde_json::Value::String(data)
-            } else if extension == "wasm" {
-                let data = {
-                    let mut buf = Vec::new();
-                    fs::File::open(&path)?.read_to_end(&mut buf)?;
-                    buf
-                };
-                let data = base64::encode(&data);
-                serde_json::json!({ "binary": data })
-            } else {
-                continue;
-            };
+    for target in include_files {
+        let target_dir = build_path
+            .as_ref()
+            .map(|p| root.join(p))
+            .unwrap_or_else(|| root.into())
+            .join(target);
 
-            files.insert(name.to_string_lossy().into_owned(), contents);
+        for entry in fs::read_dir(target_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if let (Some(name), Some(extension)) = (path.file_stem(), path.extension()) {
+                let contents = if extension == "js" {
+                    let data = {
+                        let mut buf = String::new();
+                        fs::File::open(&path)?.read_to_string(&mut buf)?;
+                        buf
+                    };
+                    serde_json::Value::String(data)
+                } else if extension == "wasm" {
+                    let data = {
+                        let mut buf = Vec::new();
+                        fs::File::open(&path)?.read_to_end(&mut buf)?;
+                        buf
+                    };
+                    let data = base64::encode(&data);
+                    serde_json::json!({ "binary": data })
+                } else {
+                    continue;
+                };
+
+                files.insert(name.to_string_lossy().into_owned(), contents);
+            }
         }
     }
 
@@ -55,24 +67,13 @@ pub fn upload(
             .build()?,
     };
 
-    let url = format!(
-        "{}://{}:{}/{}",
-        if ssl { "https" } else { "http" },
-        hostname,
-        port,
-        match prefix {
-            Some(prefix) => format!("{}/api/user/code", prefix),
-            None => "api/user/code".to_string(),
-        }
-    );
-
     #[derive(Serialize)]
     struct RequestData {
         modules: HashMap<String, serde_json::Value>,
         branch: String,
     }
 
-    let mut response = authenticate(client.post(&url), authentication)
+    let mut response = authenticate(client.post(url), authentication)
         .json(&RequestData {
             modules: files,
             branch: branch.clone(),

@@ -1,19 +1,20 @@
 cargo-screeps
 =============
 
+[![Linux Build Status][actions-image]][actions-builds]
 [![crates.io version badge][cratesio-badge]][crate]
 
 Build tool for deploying Rust WASM repositories to [Screeps][screeps] game servers.
 
-`cargo-screeps` wraps [`cargo-web`], adding the ability to trim node.js and web javascript code from
+`cargo-screeps` wraps [`wasm-pack`], adding the ability to trim node.js and web javascript code from
 the output files, and allows uploading directly to Screeps servers.
 
 The other main project in this organization is [`screeps-game-api`], type-safe bindings to the
 in-game Screeps API.
 
 These two tools go together well, but do not depend on eachother. `cargo-screeps` can compile and
-upload any screeps WASM project buildable with `stdweb`'s `cargo-web`, and `screeps-game-api` is
-usable in any project built with `cargo-web`.
+upload any screeps WASM project buildable with `wasm-bindgen`'s `wasm-pack`, and `screeps-game-api` is
+usable in any project built with `wasm-pack`.
 
 ---
 
@@ -164,9 +165,11 @@ cargo clean
 cargo screeps build
 ```
 
-[cratesio-badge]: http://meritbadge.herokuapp.com/cargo-screeps
+[cratesio-badge]: https://img.shields.io/crates/v/cargo-screeps.svg
 [crate]: https://crates.io/crates/cargo-screeps/
+[actions-image]: https://github.com/rustyscreeps/cargo-screeps/actions/workflows/build.yml/badge.svg
+[actions-builds]: https://github.com/rustyscreeps/cargo-screeps/actions/workflows/build.yml
 [`screeps-game-api`]: https://github.com/rustyscreeps/screeps-game-api/
-[`cargo-web`]: https://github.com/koute/cargo-web
+[`wasm-pack`]: https://rustwasm.github.io/wasm-pack/
 [screepsmod-auth]: https://www.npmjs.com/package/screepsmod-auth
 [screeps]: https://screeps.com/
