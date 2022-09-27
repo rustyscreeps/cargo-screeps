@@ -15,7 +15,7 @@ Unreleased
 - (Breaking) Remove `check` command, as it's not available under wasm-pack - use `cargo check`.
 - Added support for building and deploying Screeps: Arena ES6 modules. Added new build config
   option `build_mode`, which can be set to `"arena"` or `"world"` as appropriate for codebases for
-  the different games.
+  the different games. (Default mode is `world` to maintain compatibility with existing crates.)
 
 0.4.0 (2022-09-08)
 ==================
