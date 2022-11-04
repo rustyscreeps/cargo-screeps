@@ -92,14 +92,14 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     debug!("renaming wasm file");
 
     let generated_wasm_rename_to = generated_wasm.with_extension("wasm.bin");
-    fs::rename(&generated_wasm, &generated_wasm_rename_to)?;
+    fs::rename(&generated_wasm, generated_wasm_rename_to)?;
 
     debug!("processing js file");
 
     let generated_js_contents = fs::read_to_string(&generated_js)?;
 
     let generated_js_rename_to = generated_js.with_extension("jsorig");
-    fs::rename(&generated_js, &generated_js_rename_to)?;
+    fs::rename(&generated_js, generated_js_rename_to)?;
 
     let processed_js = process_js(&generated_js_contents)?;
 

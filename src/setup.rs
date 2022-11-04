@@ -30,6 +30,7 @@ fn app() -> clap::App<'static, 'static> {
                     clap::Arg::with_name("verbose")
                         .short("v")
                         .long("verbose")
+                        .help("Show more information in command output; use multiple times for additional output")
                         .multiple(true),
                 )
                 .arg(
