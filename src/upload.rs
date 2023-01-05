@@ -48,7 +48,7 @@ pub fn upload(
                         fs::File::open(&path)?.read_to_end(&mut buf)?;
                         buf
                     };
-                    let data = base64::encode(&data);
+                    let data = base64::encode(data);
                     serde_json::json!({ "binary": data })
                 } else {
                     continue;
