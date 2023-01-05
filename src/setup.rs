@@ -99,7 +99,7 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
             mode = Some("upload".to_owned());
             Command::Deploy
         }
-        other => panic!("unexpected subcommand {:?}", other),
+        other => panic!("unexpected subcommand {other:?}"),
     };
     let config = CliConfig {
         command,

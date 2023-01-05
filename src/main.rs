@@ -8,14 +8,14 @@ mod upload;
 
 fn main() {
     if let Err(e) = run::run() {
-        eprintln!("error: {}", e);
+        eprintln!("error: {e}");
         for cause in e.iter_causes() {
-            eprintln!("  ⬑ {}", cause);
+            eprintln!("  ⬑ {cause}");
         }
         let backtrace = format!("{}", e.backtrace());
         // don't print an empty backspace line if it's not enabled.
         if backtrace.trim() != "" {
-            eprintln!("{}", backtrace);
+            eprintln!("{backtrace}");
         }
         std::process::exit(1);
     }
