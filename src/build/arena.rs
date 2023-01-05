@@ -92,14 +92,14 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     debug!("renaming wasm file");
 
     let generated_wasm_rename_to = generated_wasm.with_extension("wasm.bin");
-    fs::rename(&generated_wasm, &generated_wasm_rename_to)?;
+    fs::rename(&generated_wasm, generated_wasm_rename_to)?;
 
     debug!("processing js file");
 
     let generated_js_contents = fs::read_to_string(&generated_js)?;
 
     let generated_js_rename_to = generated_js.with_extension("jsorig");
-    fs::rename(&generated_js, &generated_js_rename_to)?;
+    fs::rename(&generated_js, generated_js_rename_to)?;
 
     let processed_js = process_js(&generated_js_contents)?;
 
@@ -123,8 +123,7 @@ g=q?new t(g):g||[]}}for(var f=l="",b=0,c=g.length|0,u=c-32|0,e,d,h=0,p=0,m,k=0,n
 0,f=new t((l<<1)+8|0),b,c=0,u=!q;for(b=0;b<l;b=b+1|0,c=c+1|0){{var e=g.charCodeAt(b)|0;if(127>=e)f[c]=e;else{{if(2047>=e)f[c]=192|e>>6;else{{a:{{if(55296<=e)if(56319>=e){{var d=g.charCodeAt(b=b+1|0)|0;if(56320<=d&&57343>=d){{e=(e<<10)+d-56613888|0;if(65535<e){{f[c]=240|e>>18;f[c=c+1|0]=128|e>>12&63;f[c=c+1|0]=128|e>>6&63;f[c=c+1|0]=128|e&63;continue}}break a}}e=65533}}else 57343>=e&&(e=65533);!u&&b<<1<c&&b<<1<(c-7|0)&&(u=!0,d=new t(3*l),d.set(f),f=d)}}f[c]=224|e>>12;f[c=c+1|0]=128|e>>6&63}}f[c=c+1|0]=128|e&63}}}}return q?
 f.subarray(0,c):f.slice(0,c)}};E||(r.TextDecoder=x,r.TextEncoder=y)}})(""+void 0==typeof global?""+void 0==typeof self?this:self:global);
 
-{}
-"#,
-        input
+{input}
+"#
     ))
 }

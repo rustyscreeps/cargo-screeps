@@ -78,7 +78,7 @@ pub fn run() -> Result<(), failure::Error> {
                         hostname,
                         port,
                         match prefix {
-                            Some(prefix) => format!("{}/api/user/code", prefix),
+                            Some(prefix) => format!("{prefix}/api/user/code"),
                             None => "api/user/code".to_string(),
                         }
                     );
