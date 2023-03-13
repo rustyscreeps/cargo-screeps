@@ -1,10 +1,16 @@
 default_deploy_mode = "upload"
 
+# This section sets build options; uncomment if you need to set any of these.
+# They can also be overridden by individiual deployment modes if needed!
+
 # [build]
 # # allowed values are "release", "dev", and "profiling"
 # build_profile = "release"
+# # defaults to the name of your crate from Cargo.toml
 # out_name = "my_crate_name"
+# # any additional flags that you'd like to be passed to wasm-pack
 # extra_options = []
+
 
 # Add any number of deployment modes below.
 # When deploying, select which mode to use with `cargo screeps deploy -m modename`
@@ -14,6 +20,7 @@ default_deploy_mode = "upload"
 
 [upload]
 auth_token = "your auth token"
+# # or, if you're using instead of auth_token:
 # username = "your username or email"
 # password = "your password"
 # # The following are the default values for the optional upload options, uncomment to change
