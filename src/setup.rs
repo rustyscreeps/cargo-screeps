@@ -24,7 +24,7 @@ fn app() -> clap::App<'static, 'static> {
             clap::SubCommand::with_name("screeps")
                 .author("David Ross")
                 .version(clap::crate_version!())
-                .about("Builds WASM-targetting Rust code and deploys to Screeps game servers")
+                .about("Builds WASM-targeting Rust code and deploys to Screeps game servers")
                 .setting(AppSettings::ArgRequiredElseHelp)
                 .arg(
                     clap::Arg::with_name("verbose")
