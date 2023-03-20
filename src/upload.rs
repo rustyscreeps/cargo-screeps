@@ -79,7 +79,7 @@ pub fn upload(
             pct_consumed * 100.
         );
     } else {
-        debug!(
+        info!(
             "Files to upload consuming {:.2}MiB of 5MiB limit ({:.2}%)",
             mb_consumed,
             pct_consumed * 100.
