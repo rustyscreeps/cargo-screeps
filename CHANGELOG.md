@@ -1,6 +1,9 @@
 Unreleased
 ==================
 
+0.5.0 (2023-03-13)
+==================
+
 - (Breaking) Replaced cargo-web functionality with wasm-pack; use 0.4.x release for stdweb-based
   crates!
 - (Breaking) Remove `output_js_file` and `output_wasm_file` build options which configured the
