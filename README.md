@@ -26,8 +26,10 @@ Configured in `[build]` config section. No required settings.
 
 1. runs `wasm-pack --target nodejs` to build the rust source for Screeps: World bots, or
    `wasm-pack --target web` to for Screeps: Arena bots.
-2. Replaces the function for loading WASM file from a URL or the local filesystem with one that
-   loads the wasm module's bytes within the Screeps: World isolated VM.
+2. Modifies the generated module's javascript loader file to be compatibile with Screeps;
+   adds a polyfill for `TextEncoder`/`TextDecoder`, and replaces the node-compatible module
+   loader function with one that works with Screeps: World when the `build_mode` is set to
+   `world` (the default)
 
 ### `deploy`:
 
