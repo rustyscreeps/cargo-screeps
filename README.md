@@ -24,17 +24,12 @@ usable in any project built with `wasm-pack`.
 
 Configured in `[build]` config section. No required settings.
 
-1. runs `cargo-web build --release` to build the rust source
-2. strips off header `cargo-web` generates for loading WASM file from a URL or the local filesystem
-3. appends initialization call using bytes from `require('<compiled module name>')`
-4. puts processed JS into `target/main.js` copy compiled WASM into `target/compiled.wasm`
-
-### `check`:
-
-Does not require configuration.
-
-1. performs type checking and lifetime checking without compiling code
-  - runs `cargo web check` (see `cargo check` for non-WASM codebases)
+1. runs `wasm-pack --target nodejs` to build the rust source for Screeps: World bots, or
+   `wasm-pack --target web` to build Screeps: Arena bots
+2. Modifies the generated module's javascript loader file to be compatibile with Screeps;
+   adds a polyfill for `TextEncoder`/`TextDecoder`, and replaces the node-compatible module
+   loader function with one that works with Screeps: World when the `build_mode` is set to
+   `world` (the default)
 
 ### `deploy`:
 
@@ -45,17 +40,19 @@ configuration setting if none is specified.
 2. depending on whether the mode uploads (has authentication credentials) or copies (has a
    `destination`), proceeds to deploy the built code
 
-If copying:
+If copying (when `destination` is defined):
 
-1. copies compiled main file and WASM file (default `main.js` and `compiled.wasm`) from `target/` to
-   `<destination directory>/<branch name>/`
+1. copies compiled `.js`/`.mjs` and `.wasm`/`.bin` files from the directories specified in
+   `include_files` (default `pkg` and `javascript`) to the specified directory and branch
 2. if pruning is enabled, deletes all other files in `<destination directory>/<branch name>/`
 
-If uploading:
+If uploading (when `auth_token` or `username` and `password` are defined):
 
-1. reads `target/*.js` and `target/*.wasm`, keeping track of filenames
+1. reads compiled `.js` and `.wasm` files from the directories specified in `include_files`
+   (default `pkg` and `javascript`).
 2. reads `screeps.toml` for upload options
-3. uploads all read files to server, using filenames as the filenames on the server
+3. uploads all read files to server on the specified branch, using filenames as the filenames
+   on the server
 
 ### `upload`:
 
@@ -76,35 +73,22 @@ A shortcut for `cargo screeps deploy -m copy`.
 
 This configures general build options.
 
-- `output_js_file`: the javascript file to export bindings and bootstrapping as
-  (default `"main.js"`)
-- `output_wasm_file`: the WASM file to rename compile WASM to (default `"compiled.wasm"`)
-- `initialize_header_file`: a file containing the JavaScript for starting the WASM instance. See
-  [overriding the default initialization header](#overriding-the-default-initialization-header)
-- `features`: a list of crate features to be enabled during the build
+- `build_mode`: The game that modules should be built for; `world` or `arena`.
+- `build_profile`: The build profile that should be used; `release`, `dev`, or `profiling`.
+- `out_name`: The name used for the module created by `wasm-pack` within the `pkg` directory.
+  Defaults to the name of your crate as defined in Cargo.toml.
+- `extra_options`: Any extra command line flags you'd like to be passed to `wasm-pack`, such as
+  enabling features.
 
 Any of these options can be overridden for a given mode with its own build section. For instance,
 
 ```
 [upload.build]
-features = ["alliance_behavior"]
+extra_options = ["--features=alliance_behavior"]
 ```
 
 would cause a feature on your crate named `alliance_behavior` to be built when running the `upload`
 mode.
-
-### Overriding the default initialization header
-
-`cargo-screeps` tries to make a reasonable `main.js` file to load the WASM. However, it's pretty
-basic, and you might find you want to do some things in JavaScript before loading the WASM module.
-
-Luckily, you can override this initialization! Set `build.initialize_header_file` to a file
-containing the JavaScript initialization code.
-
-Two utility functions `wasm_fetch_module_bytes` and `wasm_create_stdweb_vars` will always be
-created, but the initialization header controls what actually runs.
-
-See [docs/initialization-header.md] for more information on this.
 
 ## Configuration modes
 
@@ -136,7 +120,7 @@ Options for deploying to a Screeps server.
 - `username`: your Screeps username or email
 - `password`: your Screeps password
 
-  Either an auth_token or your username/password can be supplied. When both are set the auth token is used. For private servers set a password using [screepsmod-auth].
+  Either an auth_token or your username/password can be supplied. When both are set the auth token is used. For private servers, set a password using [screepsmod-auth].
 - `branch`: the "branch" to copy into
 
   This is the "branch" on the screeps server to deploy to. Default is `"default"`.

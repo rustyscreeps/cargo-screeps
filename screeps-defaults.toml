@@ -4,6 +4,8 @@ default_deploy_mode = "upload"
 # They can also be overridden by individiual deployment modes if needed!
 
 # [build]
+# # allowed values are "world" and "arena"
+# build_mode = "world"
 # # allowed values are "release", "dev", and "profiling"
 # build_profile = "release"
 # # defaults to the name of your crate from Cargo.toml
