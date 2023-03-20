@@ -12,6 +12,8 @@ use serde::Serialize;
 
 use crate::config::Authentication;
 
+const CODE_SIZE_LIMIT: u32 = 5 * 1024 * 1024;
+
 pub fn upload(
     root: &Path,
     build_path: &Option<PathBuf>,
@@ -22,6 +24,7 @@ pub fn upload(
     http_timeout: Option<u32>,
 ) -> Result<(), failure::Error> {
     let mut files = HashMap::new();
+    let mut files_total_bytes = 0u32;
 
     for target in include_files {
         let target_dir = build_path
@@ -41,6 +44,7 @@ pub fn upload(
                         fs::File::open(&path)?.read_to_string(&mut buf)?;
                         buf
                     };
+                    files_total_bytes += data.chars().count() as u32;
                     serde_json::Value::String(data)
                 } else if extension == "wasm" {
                     let data = {
@@ -49,6 +53,7 @@ pub fn upload(
                         buf
                     };
                     let data = base64::encode(data);
+                    files_total_bytes += data.chars().count() as u32;
                     serde_json::json!({ "binary": data })
                 } else {
                     continue;
@@ -57,6 +62,28 @@ pub fn upload(
                 files.insert(name.to_string_lossy().into_owned(), contents);
             }
         }
+    }
+
+    let pct_consumed = files_total_bytes as f64 / CODE_SIZE_LIMIT as f64;
+    let mb_consumed = files_total_bytes as f64 / 1024. / 1024.;
+    if files_total_bytes > CODE_SIZE_LIMIT {
+        warn!(
+            "Files to upload over limit, failure expected! {:.2}MiB of 5MiB limit ({:.2}%)",
+            mb_consumed,
+            pct_consumed * 100.
+        );
+    } else if pct_consumed > 0.9 {
+        warn!(
+            "Files to upload near limit! {:.2}MiB of 5MiB limit ({:.2}%)",
+            mb_consumed,
+            pct_consumed * 100.
+        );
+    } else {
+        info!(
+            "Files to upload consuming {:.2}MiB of 5MiB limit ({:.2}%)",
+            mb_consumed,
+            pct_consumed * 100.
+        );
     }
 
     let client_builder = reqwest::blocking::Client::builder();
