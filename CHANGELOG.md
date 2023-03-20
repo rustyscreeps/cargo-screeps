@@ -1,6 +1,8 @@
 Unreleased
 ==================
 
+- Add logging output showing the percentage of the code size limit being consumed when uploading.
+
 0.5.0 (2023-03-13)
 ==================
 
