@@ -25,7 +25,7 @@ usable in any project built with `wasm-pack`.
 Configured in `[build]` config section. No required settings.
 
 1. runs `wasm-pack --target nodejs` to build the rust source for Screeps: World bots, or
-   `wasm-pack --target web` to build Screeps: Arena bots.
+   `wasm-pack --target web` to build Screeps: Arena bots
 2. Modifies the generated module's javascript loader file to be compatibile with Screeps;
    adds a polyfill for `TextEncoder`/`TextDecoder`, and replaces the node-compatible module
    loader function with one that works with Screeps: World when the `build_mode` is set to
@@ -73,6 +73,7 @@ A shortcut for `cargo screeps deploy -m copy`.
 
 This configures general build options.
 
+- `build_mode`: The game that modules should be built for; `world` or `arena`.
 - `build_profile`: The build profile that should be used; `release`, `dev`, or `profiling`.
 - `out_name`: The name used for the module created by `wasm-pack` within the `pkg` directory.
   Defaults to the name of your crate as defined in Cargo.toml.
