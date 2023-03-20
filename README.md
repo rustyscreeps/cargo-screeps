@@ -48,10 +48,11 @@ If copying (when `destination` is defined):
 
 If uploading (when `auth_token` or `username` and `password` are defined):
 
-1. reads compiled `.js`/`.mjs` and `.wasm`/`.bin` files from the directories specified in
-   `include_files` (default `pkg` and `javascript`).
+1. reads compiled `.js` and `.wasm` files from the directories specified in `include_files`
+   (default `pkg` and `javascript`).
 2. reads `screeps.toml` for upload options
-3. uploads all read files to server, using filenames as the filenames on the server
+3. uploads all read files to server on the specified branch, using filenames as the filenames
+   on the server
 
 ### `upload`:
 
