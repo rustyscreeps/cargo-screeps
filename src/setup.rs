@@ -1,6 +1,5 @@
 use std::{io, path::PathBuf};
 
-use clap::AppSettings;
 use failure::format_err;
 
 #[derive(Clone, Debug)]
@@ -16,50 +15,48 @@ pub enum Command {
     Deploy,
 }
 
-fn app() -> clap::App<'static, 'static> {
-    clap::App::new("cargo screeps")
+fn app() -> clap::Command {
+    clap::Command::new("cargo screeps")
         .bin_name("cargo")
-        .setting(AppSettings::ArgRequiredElseHelp)
+        .arg_required_else_help(true)
         .subcommand(
-            clap::SubCommand::with_name("screeps")
+            clap::Command::new("screeps")
                 .author("David Ross")
                 .version(clap::crate_version!())
                 .about("Builds WASM-targeting Rust code and deploys to Screeps game servers")
-                .setting(AppSettings::ArgRequiredElseHelp)
+                .arg_required_else_help(true)
                 .arg(
-                    clap::Arg::with_name("verbose")
-                        .short("v")
+                    clap::Arg::new("verbose")
+                        .short('v')
                         .long("verbose")
                         .help("Show more information in command output; use multiple times for additional output")
-                        .multiple(true),
+                        .action(clap::ArgAction::Count),
                 )
                 .arg(
-                    clap::Arg::with_name("config")
-                        .short("c")
+                    clap::Arg::new("config")
+                        .short('c')
                         .long("config")
-                        .multiple(false)
-                        .takes_value(true)
+                        .num_args(1)
                         .value_name("CONFIG_FILE"),
                 )
                 .subcommand(
-                    clap::SubCommand::with_name("build")
+                    clap::Command::new("build")
                         .about("build files, put in target/ in project root"),
                 )
                 .subcommand(
-                    clap::SubCommand::with_name("deploy")
+                    clap::Command::new("deploy")
                         .about("run specified deploy mode (or the default if none is specified)")
                         .arg(
-                            clap::Arg::with_name("mode")
-                                .short("m")
+                            clap::Arg::new("mode")
+                                .short('m')
                                 .long("mode")
-                                .multiple(false)
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_name("DEPLOY_MODE"),
                         ),
                 )
-                .subcommand(clap::SubCommand::with_name("copy").about("run the copy deploy mode"))
+                .subcommand(clap::Command::new("copy").about("run the copy deploy mode"))
                 .subcommand(
-                    clap::SubCommand::with_name("upload").about("run the upload deploy mode"),
+                    clap::Command::new("upload").about("run the upload deploy mode"),
                 ),
         )
 }
@@ -71,7 +68,7 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
         format_err!("expected first subcommand to be 'screeps'. please run as 'cargo screeps'")
     })?;
 
-    let verbosity = match args.occurrences_of("verbose") {
+    let verbosity = match args.get_count("verbose") {
         0 => log::LevelFilter::Info,
         1 => log::LevelFilter::Debug,
         _ => log::LevelFilter::Trace,
@@ -85,7 +82,7 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
         .unwrap();
 
     let mut mode = match args.subcommand_matches("deploy") {
-        Some(deploy_args) => deploy_args.value_of("mode").map(Into::into),
+        Some(deploy_args) => deploy_args.get_one::<String>("mode").map(Into::into),
         None => None,
     };
 
@@ -104,7 +101,7 @@ pub fn setup_cli() -> Result<CliConfig, failure::Error> {
     };
     let config = CliConfig {
         command,
-        config_path: args.value_of("config").map(Into::into),
+        config_path: args.get_one::<PathBuf>("config").map(Into::into),
         deploy_mode: mode,
     };
 
