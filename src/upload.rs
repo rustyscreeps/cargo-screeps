@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use base64::Engine;
 use failure::{bail, ensure};
 use log::*;
 use serde::Serialize;
@@ -52,7 +53,7 @@ pub fn upload(
                         fs::File::open(&path)?.read_to_end(&mut buf)?;
                         buf
                     };
-                    let data = base64::encode(data);
+                    let data = base64::engine::general_purpose::STANDARD_NO_PAD.encode(data);
                     files_total_bytes += data.chars().count() as u32;
                     serde_json::json!({ "binary": data })
                 } else {
