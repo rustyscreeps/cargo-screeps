@@ -1,6 +1,6 @@
 use std::{io, path::PathBuf};
 
-use failure::format_err;
+use anyhow::anyhow;
 
 #[derive(Clone, Debug)]
 pub struct CliConfig {
@@ -61,11 +61,11 @@ fn app() -> clap::Command {
         )
 }
 
-pub fn setup_cli() -> Result<CliConfig, failure::Error> {
+pub fn setup_cli() -> Result<CliConfig, anyhow::Error> {
     let cargo_args = app().get_matches();
 
     let args = cargo_args.subcommand_matches("screeps").ok_or_else(|| {
-        format_err!("expected first subcommand to be 'screeps'. please run as 'cargo screeps'")
+        anyhow!("expected first subcommand to be 'screeps'. please run as 'cargo screeps'")
     })?;
 
     let verbosity = match args.get_count("verbose") {

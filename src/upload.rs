@@ -7,7 +7,7 @@ use std::{
 };
 
 use base64::Engine;
-use failure::{bail, ensure};
+use anyhow::{bail, ensure};
 use log::*;
 use serde::Serialize;
 
@@ -23,7 +23,7 @@ pub fn upload(
     include_files: &Vec<PathBuf>,
     url: &String,
     http_timeout: Option<u32>,
-) -> Result<(), failure::Error> {
+) -> Result<(), anyhow::Error> {
     let mut files = HashMap::new();
     let mut files_total_bytes = 0u32;
 

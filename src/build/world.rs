@@ -1,13 +1,12 @@
 use std::{env, ffi::OsStr, fs, io::Write, path::Path};
 
-use failure::{ensure, format_err};
+use anyhow::{anyhow, ensure};
 use log::*;
-
 use wasm_pack::command::build::{Build, BuildOptions, Target};
 
 use crate::config::{BuildConfiguration, BuildProfile};
 
-pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failure::Error> {
+pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), anyhow::Error> {
     debug!("building");
 
     debug!("changing directory to {}", root.display());
@@ -70,7 +69,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         }
     }
     let generated_js = generated_js
-        .ok_or_else(|| format_err!("error: no js files found in {}", target_dir.display()))?;
+        .ok_or_else(|| anyhow!("error: no js files found in {}", target_dir.display()))?;
 
     debug!("processing js file");
 
@@ -87,7 +86,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     Ok(())
 }
 
-fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String, failure::Error> {
+fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String, anyhow::Error> {
     // first, replace the TextEncoder/TextDecoder load step with a polyfill,
     // as screeps' js environment doesn't give us access to `util`.
     // also remove the filesystem load of the wasm bytes and replace with a simple
@@ -101,7 +100,7 @@ fn process_js(file_name: &Path, input: &str, out_name: &String) -> Result<String
     .expect("expected pre-set regex to succeed");
 
     let captures = bindgen_output_regex.captures(input).ok_or_else(|| {
-        format_err!(
+        anyhow!(
             "'wasm-pack' generated unexpected JS output! This means it's updated without \
              'cargo screeps' also having updated. Please report this issue to \
              https://github.com/rustyscreeps/cargo-screeps/issues and include \
