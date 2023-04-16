@@ -1,6 +1,11 @@
 Unreleased
 ==================
 
+- Update `base64` to 0.21
+- Update `regex` to 1.7
+- Update `clap` to 4
+- Update `toml` to 0.7
+- Update `wasm-pack` to 0.11
 - Add logging output showing the percentage of the code size limit being consumed when uploading.
 
 0.5.0 (2023-03-13)
