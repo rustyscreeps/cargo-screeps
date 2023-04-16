@@ -6,8 +6,8 @@ use std::{
     time::Duration,
 };
 
-use base64::Engine;
 use anyhow::{bail, ensure};
+use base64::Engine;
 use log::*;
 use serde::Serialize;
 
