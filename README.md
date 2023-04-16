@@ -3,6 +3,7 @@ cargo-screeps
 
 [![Linux Build Status][actions-image]][actions-builds]
 [![crates.io version badge][cratesio-badge]][crate]
+[![dependency status][deps-badge]][deps]
 
 Build tool for deploying Rust WASM repositories to [Screeps][screeps] game servers.
 
@@ -149,10 +150,12 @@ cargo clean
 cargo screeps build
 ```
 
-[cratesio-badge]: https://img.shields.io/crates/v/cargo-screeps.svg
-[crate]: https://crates.io/crates/cargo-screeps/
 [actions-image]: https://github.com/rustyscreeps/cargo-screeps/actions/workflows/build.yml/badge.svg
 [actions-builds]: https://github.com/rustyscreeps/cargo-screeps/actions/workflows/build.yml
+[cratesio-badge]: https://img.shields.io/crates/v/cargo-screeps.svg
+[crate]: https://crates.io/crates/cargo-screeps/
+[deps-badge]: https://deps.rs/repo/github/rustyscreeps/cargo-screeps/status.svg
+[deps]: https://deps.rs/repo/github/rustyscreeps/cargo-screeps
 [`screeps-game-api`]: https://github.com/rustyscreeps/screeps-game-api/
 [`wasm-pack`]: https://rustwasm.github.io/wasm-pack/
 [screepsmod-auth]: https://www.npmjs.com/package/screepsmod-auth
