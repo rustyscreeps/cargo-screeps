@@ -19,7 +19,7 @@ repository = "https://github.com/rustyscreeps/cargo-screeps/"
 description = "Build tool for deploying Rust WASM code to Screeps game servers"
 
 [dependencies]
-base64 = "0.13"
+base64 = "0.21"
 clap = "2"
 failure = "0.1"
 fern = "0.6"
