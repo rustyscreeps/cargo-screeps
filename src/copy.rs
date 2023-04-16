@@ -13,7 +13,7 @@ pub fn copy<P: AsRef<Path>>(
     branch: &String,
     include_files: &Vec<PathBuf>,
     prune: bool,
-) -> Result<(), failure::Error> {
+) -> Result<(), anyhow::Error> {
     let root = root.as_ref();
 
     // join root here so relative directories are correct even if 'cargo screeps' is

@@ -3,11 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::format_err;
+use anyhow::anyhow;
 
 use crate::setup::CliConfig;
 
-pub fn find_project_root(cli_config: &CliConfig) -> Result<PathBuf, failure::Error> {
+pub fn find_project_root(cli_config: &CliConfig) -> Result<PathBuf, anyhow::Error> {
     if let Some(config_path) = cli_config.config_path.as_ref() {
         // first try without canonicalization
         if let Some(noncanon_parent) = config_path.parent() {
@@ -25,7 +25,7 @@ pub fn find_project_root(cli_config: &CliConfig) -> Result<PathBuf, failure::Err
         return Ok(config_path
             .canonicalize()?
             .parent()
-            .ok_or_else(|| format_err!("config option specified which has no parent"))?
+            .ok_or_else(|| anyhow!("config option specified which has no parent"))?
             .to_owned());
     }
 
@@ -34,7 +34,7 @@ pub fn find_project_root(cli_config: &CliConfig) -> Result<PathBuf, failure::Err
     search_dir(&here).map(Ok).unwrap_or_else(|| {
         let canon_here = here.canonicalize()?;
         search_dir(&canon_here).ok_or_else(|| {
-            format_err!(
+            anyhow!(
                 "could not find 'screeps.toml' in {} or parents.\n\
                  Please create 'screeps.toml' in project root. (example at \
                  https://github.com/rustyscreeps/cargo-screeps/\

@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use failure::{ensure, ResultExt};
+use anyhow::{ensure, Context};
 use log::*;
 use merge::Merge;
 use serde::Deserialize;
@@ -116,7 +116,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn read<P: AsRef<Path>>(config_file: P) -> Result<Self, failure::Error> {
+    pub fn read<P: AsRef<Path>>(config_file: P) -> Result<Self, anyhow::Error> {
         let config_file = config_file.as_ref();
         ensure!(
             config_file.exists(),
@@ -137,7 +137,7 @@ impl Configuration {
         let mut unused_paths = BTreeSet::new();
 
         let config: Configuration =
-            serde_ignored::deserialize(&mut toml::Deserializer::new(&config_str), |unused_path| {
+            serde_ignored::deserialize(toml::Deserializer::new(&config_str), |unused_path| {
                 unused_paths.insert(unused_path.to_string());
             })
             .context("deserializing config")?;

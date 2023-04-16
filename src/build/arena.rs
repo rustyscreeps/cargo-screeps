@@ -1,13 +1,12 @@
 use std::{env, ffi::OsStr, fs, io::Write, path::Path};
 
-use failure::{ensure, format_err};
+use anyhow::{anyhow, ensure};
 use log::*;
-
 use wasm_pack::command::build::{Build, BuildOptions, Target};
 
 use crate::config::{BuildConfiguration, BuildProfile};
 
-pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failure::Error> {
+pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), anyhow::Error> {
     debug!("building");
 
     debug!("changing directory to {}", root.display());
@@ -70,7 +69,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         }
     }
     let generated_js = generated_js
-        .ok_or_else(|| format_err!("error: no js files found in {}", target_dir.display()))?;
+        .ok_or_else(|| anyhow!("error: no js files found in {}", target_dir.display()))?;
 
     let mut generated_wasm = None;
     for r in fs::read_dir(&target_dir)? {
@@ -87,7 +86,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
         }
     }
     let generated_wasm = generated_wasm
-        .ok_or_else(|| format_err!("error: no wasm files found in {}", target_dir.display()))?;
+        .ok_or_else(|| anyhow!("error: no wasm files found in {}", target_dir.display()))?;
 
     debug!("renaming wasm file");
 
@@ -112,7 +111,7 @@ pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failu
     Ok(())
 }
 
-fn process_js(input: &str) -> Result<String, failure::Error> {
+fn process_js(input: &str) -> Result<String, anyhow::Error> {
     // add polyfills for TextEncoder/TextDecoder
 
     // CC-0 TextEncoder/TextDecoder polyfill from https://github.com/anonyco/FastestSmallestTextEncoderDecoder

@@ -5,7 +5,7 @@ use crate::config::{BuildConfiguration, BuildMode};
 mod arena;
 mod world;
 
-pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), failure::Error> {
+pub fn build(root: &Path, build_config: &BuildConfiguration) -> Result<(), anyhow::Error> {
     let mode = build_config.build_mode.clone().unwrap_or(BuildMode::World);
 
     match mode {

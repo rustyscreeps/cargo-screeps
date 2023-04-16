@@ -6,7 +6,8 @@ use std::{
     time::Duration,
 };
 
-use failure::{bail, ensure};
+use anyhow::{bail, ensure};
+use base64::Engine;
 use log::*;
 use serde::Serialize;
 
@@ -22,7 +23,7 @@ pub fn upload(
     include_files: &Vec<PathBuf>,
     url: &String,
     http_timeout: Option<u32>,
-) -> Result<(), failure::Error> {
+) -> Result<(), anyhow::Error> {
     let mut files = HashMap::new();
     let mut files_total_bytes = 0u32;
 
@@ -52,7 +53,7 @@ pub fn upload(
                         fs::File::open(&path)?.read_to_end(&mut buf)?;
                         buf
                     };
-                    let data = base64::encode(data);
+                    let data = base64::engine::general_purpose::STANDARD_NO_PAD.encode(data);
                     files_total_bytes += data.chars().count() as u32;
                     serde_json::json!({ "binary": data })
                 } else {

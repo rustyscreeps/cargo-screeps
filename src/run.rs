@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use failure::format_err;
+use anyhow::anyhow;
 use log::*;
 use merge::Merge;
 
@@ -10,7 +10,7 @@ use crate::{
     copy, orientation, setup, upload,
 };
 
-pub fn run() -> Result<(), failure::Error> {
+pub fn run() -> Result<(), anyhow::Error> {
     let cli_config = setup::setup_cli()?;
 
     let root = orientation::find_project_root(&cli_config)?;
@@ -32,12 +32,12 @@ pub fn run() -> Result<(), failure::Error> {
                 Some(v) => v,
                 None => {
                     config.default_deploy_mode.ok_or_else(|| {
-                        format_err!("must have default_deploy_mode set to use 'cargo screeps deploy' without --mode")
+                        anyhow!("must have default_deploy_mode set to use 'cargo screeps deploy' without --mode")
                     })?
                 }
             };
             let target_config = config.modes.remove(&mode).ok_or_else(|| {
-                format_err!(
+                anyhow!(
                     "couldn't find mode {}, must be defined in screeps.toml",
                     mode
                 )
@@ -102,7 +102,7 @@ pub fn run() -> Result<(), failure::Error> {
     Ok(())
 }
 
-fn run_build(root: &Path, config: &BuildConfiguration) -> Result<(), failure::Error> {
+fn run_build(root: &Path, config: &BuildConfiguration) -> Result<(), anyhow::Error> {
     info!("compiling...");
     build::build(root, config)?;
     info!("compiled.");
@@ -117,7 +117,7 @@ fn run_copy(
     branch: &String,
     include_files: &Vec<PathBuf>,
     prune: bool,
-) -> Result<(), failure::Error> {
+) -> Result<(), anyhow::Error> {
     info!("copying...");
     copy::copy(root, build_path, destination, branch, include_files, prune)?;
     info!("copied.");
@@ -133,7 +133,7 @@ fn run_upload(
     include_files: &Vec<PathBuf>,
     url: &String,
     http_timeout: Option<u32>,
-) -> Result<(), failure::Error> {
+) -> Result<(), anyhow::Error> {
     info!("uploading...");
     upload::upload(
         root,
