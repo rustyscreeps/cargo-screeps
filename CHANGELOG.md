@@ -1,6 +1,7 @@
 Unreleased
 ==========
 
+- Fix merging of `extra_options` configuration in `build` section
 
 0.5.1 (2023-04-16)
 ==================
