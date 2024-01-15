@@ -46,15 +46,15 @@ pub fn run() -> Result<(), anyhow::Error> {
                 ModeConfiguration::Copy {
                     destination,
                     branch,
-                    build,
+                    mut build,
                     include_files,
                     prune,
                 } => {
-                    config.build.merge(build);
-                    run_build(&root, &config.build)?;
+                    build.merge(config.build);
+                    run_build(&root, &build)?;
                     run_copy(
                         &root,
-                        &config.build.path,
+                        &build.path,
                         &destination,
                         &branch,
                         &include_files,
@@ -64,7 +64,7 @@ pub fn run() -> Result<(), anyhow::Error> {
                 ModeConfiguration::Upload {
                     authentication,
                     branch,
-                    build,
+                    mut build,
                     include_files,
                     hostname,
                     ssl,
@@ -83,11 +83,11 @@ pub fn run() -> Result<(), anyhow::Error> {
                         }
                     );
 
-                    config.build.merge(build);
-                    run_build(&root, &config.build)?;
+                    build.merge(config.build);
+                    run_build(&root, &build)?;
                     run_upload(
                         &root,
-                        &config.build.path,
+                        &build.path,
                         &authentication,
                         &branch,
                         &include_files,

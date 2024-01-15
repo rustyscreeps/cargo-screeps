@@ -2,6 +2,7 @@ Unreleased
 ==========
 
 - Fix merging of `extra_options` configuration in `build` section
+- Fix merging priority of `build` section options
 
 0.5.1 (2023-04-16)
 ==================

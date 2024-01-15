@@ -32,7 +32,7 @@ pub struct BuildConfiguration {
     pub build_mode: Option<BuildMode>,
     #[serde(default)]
     pub out_name: Option<String>,
-    #[merge(strategy = merge::vec::append)]
+    #[merge(strategy = merge::vec::prepend)]
     #[serde(default)]
     pub extra_options: Vec<String>,
     #[serde(default)]
