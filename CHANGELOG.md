@@ -1,8 +1,13 @@
 Unreleased
 ==========
 
+0.5.2 (2024-01-15)
+==================
+
 - Fix merging of `extra_options` configuration in `build` section
 - Fix merging priority of `build` section options
+- Update `toml` to 0.8
+- Update `wasm-pack` to 0.12
 
 0.5.1 (2023-04-16)
 ==================
