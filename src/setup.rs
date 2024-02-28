@@ -37,7 +37,8 @@ fn app() -> clap::Command {
                         .short('c')
                         .long("config")
                         .num_args(1)
-                        .value_name("CONFIG_FILE"),
+                        .value_name("CONFIG_FILE")
+                        .value_parser(clap::value_parser!(PathBuf)),
                 )
                 .subcommand(
                     clap::Command::new("build")

@@ -1,6 +1,8 @@
 Unreleased
 ==========
 
+- Fix crash when specifying config file path on command line
+
 0.5.2 (2024-01-15)
 ==================
 
