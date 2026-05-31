@@ -56,7 +56,12 @@ pub fn copy<P: AsRef<Path>>(
 
             if !deployed.contains(&path) {
                 info!("pruning: removing {}", path.display());
-                fs::remove_file(path)?;
+
+                if path.is_dir() {
+                    fs::remove_dir_all(&path)?;
+                } else {
+                    fs::remove_file(&path)?;
+                }
             }
         }
     }
