@@ -33,4 +33,4 @@ serde_ignored = "0.1"
 serde_json = "1"
 structopt = "0.3"
 toml = "1"
-wasm-pack = { version = "0.12", default-features = false }
+wasm-pack = { version = "0.15", default-features = false }
