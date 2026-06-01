@@ -22,7 +22,7 @@ description = "Build tool for deploying Rust WASM code to Screeps game servers"
 anyhow = "1"
 base64 = "0.22"
 clap = { version = "4", features = ["cargo"] }
-fern = "0.6"
+fern = "0.7"
 log = "0.4"
 merge = "0.1"
 pathdiff = "0.2"
