@@ -24,7 +24,7 @@ base64 = "0.22"
 clap = { version = "4", features = ["cargo"] }
 fern = "0.7"
 log = "0.4"
-merge = "0.1"
+merge = "0.2"
 pathdiff = "0.2"
 regex = "1.7"
 reqwest = { version = "0.11", default-features = false, features = ["blocking", "json", "rustls-tls"]}
