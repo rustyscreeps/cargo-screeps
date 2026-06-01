@@ -141,7 +141,7 @@ impl Configuration {
         let mut unused_paths = BTreeSet::new();
 
         let config: Configuration =
-            serde_ignored::deserialize(toml::Deserializer::new(&config_str), |unused_path| {
+            serde_ignored::deserialize(toml::Deserializer::parse(&config_str)?, |unused_path| {
                 unused_paths.insert(unused_path.to_string());
             })
             .context("deserializing config")?;
