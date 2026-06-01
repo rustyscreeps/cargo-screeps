@@ -26,15 +26,19 @@ pub enum BuildMode {
 
 #[derive(Clone, Debug, Deserialize, Default, Merge)]
 pub struct BuildConfiguration {
+    #[merge(strategy=merge::option::overwrite_none)]
     #[serde(default)]
     pub build_profile: Option<BuildProfile>,
+    #[merge(strategy=merge::option::overwrite_none)]
     #[serde(default)]
     pub build_mode: Option<BuildMode>,
+    #[merge(strategy=merge::option::overwrite_none)]
     #[serde(default)]
     pub out_name: Option<String>,
     #[merge(strategy = merge::vec::prepend)]
     #[serde(default)]
     pub extra_options: Vec<String>,
+    #[merge(strategy=merge::option::overwrite_none)]
     #[serde(default)]
     pub path: Option<PathBuf>,
 }
