@@ -2,6 +2,7 @@ Unreleased
 ==========
 
 - Fix crash when specifying config file path on command line
+- Updated `prune` option to delete subdirectories to fix deploying for Screeps: Arena
 
 0.5.2 (2024-01-15)
 ==================
